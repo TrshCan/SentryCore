@@ -39,15 +39,16 @@ public class SentryListener implements Listener {
             int damageTier = SentryCoreItem.getDamageTier(itemInHand);
             int buffTier = SentryCoreItem.getBuffTier(itemInHand);
             int targetsTier = SentryCoreItem.getTargetsTier(itemInHand);
+            java.util.Set<org.bukkit.entity.EntityType> allowedTargets = SentryCoreItem.getAllowedTargets(itemInHand);
             
             // Try to load existing data from obsidian block first (in case of server crash)
             SentryData existingData = sentryManager.loadFromPDC(placed.getLocation());
             if (existingData != null) {
                  sentryManager.addSentry(placed.getLocation(), existingData.getOwnerName(),
                     existingData.getRangeTier(), existingData.getRechargeTier(),
-                    existingData.getDamageTier(), existingData.getBuffTier(), existingData.getTargetsTier());
+                    existingData.getDamageTier(), existingData.getBuffTier(), existingData.getTargetsTier(), existingData.getAllowedTargets());
             } else {
-                 sentryManager.addSentry(placed.getLocation(), ownerName, rangeTier, rechargeTier, damageTier, buffTier, targetsTier);
+                 sentryManager.addSentry(placed.getLocation(), ownerName, rangeTier, rechargeTier, damageTier, buffTier, targetsTier, allowedTargets);
             }
             
             event.getPlayer().sendMessage(
@@ -67,8 +68,8 @@ public class SentryListener implements Listener {
         ItemStack currentItem = event.getCurrentItem();
         if (currentItem != null && SentryCoreItem.isSentryCore(currentItem)) {
             String ownerName = event.getWhoClicked().getName();
-            // Freshly crafted cores are always Tier 0
-            event.setCurrentItem(SentryCoreItem.buildItem(ownerName, 0, 0, 0, 0, 0));
+            // Freshly crafted cores are always Tier 0, and default targets
+            event.setCurrentItem(SentryCoreItem.buildItem(ownerName, 0, 0, 0, 0, 0, SentryTargets.getDefaultTargets()));
         }
     }
 
@@ -80,9 +81,10 @@ public class SentryListener implements Listener {
         int d = data != null ? data.getDamageTier() : 0;
         int b = data != null ? data.getBuffTier() : 0;
         int t = data != null ? data.getTargetsTier() : 0;
+        java.util.Set<org.bukkit.entity.EntityType> targets = data != null ? data.getAllowedTargets() : SentryTargets.getDefaultTargets();
         
         sentryManager.removeSentry(coreLoc);
-        coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(ownerName, r, rc, d, b, t));
+        coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(ownerName, r, rc, d, b, t, targets));
     }
 
     @EventHandler

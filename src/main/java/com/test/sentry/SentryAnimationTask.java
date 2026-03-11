@@ -3,7 +3,7 @@ package com.test.sentry;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.entity.Monster;
+import org.bukkit.entity.Mob;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -18,11 +18,11 @@ import org.bukkit.util.Vector;
 public class SentryAnimationTask extends BukkitRunnable {
 
     private final Location origin;
-    private final Monster target;
+    private final Mob target;
     private final double damageMult;
     private int ticksLeft = 20;
 
-    public SentryAnimationTask(Location origin, Monster target, double damageMult) {
+    public SentryAnimationTask(Location origin, Mob target, double damageMult) {
         this.origin = origin;
         this.target = target;
         this.damageMult = damageMult;
@@ -68,7 +68,7 @@ public class SentryAnimationTask extends BukkitRunnable {
     /**
      * Starts the Prismarine laser animation task.
      */
-    public static void startPrismarineLaser(JavaPlugin plugin, Location coreLoc, Monster target, double damageMult) {
+    public static void startPrismarineLaser(JavaPlugin plugin, Location coreLoc, Mob target, double damageMult) {
         Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
         new SentryAnimationTask(shootFrom, target, damageMult).runTaskTimer(plugin, 0L, 1L);
     }

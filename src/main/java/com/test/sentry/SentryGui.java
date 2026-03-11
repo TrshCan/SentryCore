@@ -83,6 +83,9 @@ public final class SentryGui {
         // Slot 22 — Upgrade Menu (Nether Star)
         inv.setItem(22, buildUpgradeMenuItem(data));
 
+        // Slot 24 — Target List (Zombie Head)
+        inv.setItem(24, buildTargetListItem());
+
         // Slot 31 — Pick Up Sentry (Barrier)
         inv.setItem(31, buildPickUpItem());
 
@@ -308,8 +311,67 @@ public final class SentryGui {
         return pane;
     }
 
-    // Removed title encoding methods (replaced by SentryGuiHolder)
+    private static ItemStack buildTargetListItem() {
+        ItemStack item = new ItemStack(Material.ZOMBIE_HEAD, 1);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text("Target List").color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+            java.util.List<Component> lore = new java.util.ArrayList<>();
+            lore.add(Component.text("Click to configure which").color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("mobs this sentry attacks.").color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
 
+    /**
+     * Opens the Target List configuration GUI for a player.
+     */
+    public static void openTargetMenu(Player player, Location coreLoc, SentryData data) {
+        SentryGuiHolder holder = new SentryGuiHolder(coreLoc, SentryGuiHolder.GuiType.TARGET_LIST);
+        String ownerName = data.getOwnerName() != null ? data.getOwnerName() : "Unknown";
+        Inventory inv = Bukkit.createInventory(holder, 54, Component.text("§5" + ownerName + "'s Target List"));
+        holder.setInventory(inv);
+
+        java.util.Set<org.bukkit.entity.EntityType> allowed = data.getAllowedTargets();
+        int slot = 0;
+
+        for (java.util.Map.Entry<org.bukkit.entity.EntityType, Material> entry : SentryTargets.HOSTILE_MOBS.entrySet()) {
+            if (slot >= 54) break; // sanity check
+            org.bukkit.entity.EntityType type = entry.getKey();
+            boolean isTargeted = allowed.contains(type);
+
+            ItemStack item = new ItemStack(entry.getValue(), 1);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                // Name beautifully
+                String prettyName = type.name().replace("_", " ").toLowerCase();
+                String[] words = prettyName.split(" ");
+                StringBuilder formattedName = new StringBuilder();
+                for (String w : words) {
+                    formattedName.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1)).append(" ");
+                }
+                
+                meta.displayName(Component.text(formattedName.toString().trim()).color(TextColor.fromHexString("#FFAA00")).decoration(TextDecoration.ITALIC, false));
+
+                java.util.List<Component> lore = new java.util.ArrayList<>();
+                lore.add(Component.empty());
+                if (isTargeted) {
+                    lore.add(Component.text("► TARGETED").color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false).decorate(TextDecoration.BOLD));
+                    lore.add(Component.text("Click to Ignore").color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false));
+                } else {
+                    lore.add(Component.text("► IGNORED").color(INACTIVE_COLOR).decoration(TextDecoration.ITALIC, false).decorate(TextDecoration.BOLD));
+                    lore.add(Component.text("Click to Target").color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false));
+                }
+                meta.lore(lore);
+                item.setItemMeta(meta);
+            }
+            inv.setItem(slot++, item);
+        }
+
+        player.openInventory(inv);
+    }
     private static String formatMaterial(Material mat) {
         String name = mat.name().replace('_', ' ');
         StringBuilder sb = new StringBuilder();

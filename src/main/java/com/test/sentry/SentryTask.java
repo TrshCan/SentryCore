@@ -8,7 +8,7 @@ import org.bukkit.block.Block;
 
 import org.bukkit.block.Container;
 import org.bukkit.entity.Arrow;
-import org.bukkit.entity.Monster;
+import org.bukkit.entity.Mob;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -96,14 +96,14 @@ public class SentryTask extends BukkitRunnable {
         // 4. Targets modifier from Upgrade Tier
         int maxTargets = 1 + config.getTargetsBonus(data.getTargetsTier());
 
-        java.util.List<Monster> targets = findNearestMonsters(coreLoc, realRange, maxTargets);
+        java.util.List<Mob> targets = findNearestMonsters(coreLoc, realRange, maxTargets, data.getAllowedTargets());
         if (targets.isEmpty()) return;
 
         // 3. Damage modifier from Upgrade Tier
         int damageBonusPercent = config.getDamageBonus(data.getDamageTier());
         double damageMultiplier = 1.0 + (damageBonusPercent / 100.0);
 
-        for (Monster target : targets) {
+        for (Mob target : targets) {
             switch (mode) {
                 case AMETHYST  -> fireAmethyst(coreLoc, target, damageMultiplier);
                 case PRISMARINE -> firePrismarine(coreLoc, target, damageMultiplier);
@@ -129,7 +129,7 @@ public class SentryTask extends BukkitRunnable {
 
     // ─────────────────── Mode A — Amethyst Shard ───────────────────
 
-    private void fireAmethyst(Location coreLoc, Monster target, double damageMult) {
+    private void fireAmethyst(Location coreLoc, Mob target, double damageMult) {
         Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
         Location targetEye = target.getEyeLocation();
 
@@ -156,14 +156,14 @@ public class SentryTask extends BukkitRunnable {
 
     // ─────────────────── Mode B — Prismarine Shard ───────────────────
 
-    private void firePrismarine(Location coreLoc, Monster target, double damageMult) {
+    private void firePrismarine(Location coreLoc, Mob target, double damageMult) {
         // Delegate to the 20-tick tracking animation task
         SentryAnimationTask.startPrismarineLaser(plugin, coreLoc, target, damageMult);
     }
 
     // ─────────────────── Mode C — Echo Shard ───────────────────
 
-    private void fireEcho(Location coreLoc, Monster target, double damageMult) {
+    private void fireEcho(Location coreLoc, Mob target, double damageMult) {
         Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
         Location targetEye = target.getEyeLocation();
 
@@ -179,12 +179,15 @@ public class SentryTask extends BukkitRunnable {
     // ─────────────────── Helpers ───────────────────
 
     /**
-     * Finds up to {@code maxTargets} Monster entities within {@code radius} blocks of {@code origin}, sorted by distance.
+     * Finds up to {@code maxTargets} Mob entities within {@code radius} blocks of {@code origin}, sorted by distance.
+     * Filtering using the specific allowedTargets set.
      */
-    private java.util.List<Monster> findNearestMonsters(Location origin, double radius, int maxTargets) {
-        Collection<Monster> nearby = origin.getWorld().getNearbyEntitiesByType(
-                Monster.class, origin, radius);
+    private java.util.List<Mob> findNearestMonsters(Location origin, double radius, int maxTargets, java.util.Set<org.bukkit.entity.EntityType> allowedTargets) {
+        Collection<Mob> nearby = origin.getWorld().getNearbyEntitiesByType(
+                Mob.class, origin, radius);
         return nearby.stream()
+                .filter(m -> allowedTargets.contains(m.getType()))
+                .filter(m -> !m.isDead() && m.isValid())
                 .sorted(Comparator.comparingDouble(m -> m.getLocation().distanceSquared(origin)))
                 .limit(maxTargets)
                 .toList();

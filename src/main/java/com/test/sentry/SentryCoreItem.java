@@ -22,6 +22,7 @@ public final class SentryCoreItem {
     private static NamespacedKey SENTRY_DAMAGE_KEY;
     private static NamespacedKey SENTRY_BUFF_KEY;
     private static NamespacedKey SENTRY_TARGETS_KEY;
+    private static NamespacedKey SENTRY_ALLOWED_TARGETS_KEY;
 
     public static void init(JavaPlugin plugin) {
         SENTRY_TYPE_KEY = new NamespacedKey(plugin, "sentry_type");
@@ -31,6 +32,7 @@ public final class SentryCoreItem {
         SENTRY_DAMAGE_KEY = new NamespacedKey(plugin, "sentry_damage_tier");
         SENTRY_BUFF_KEY = new NamespacedKey(plugin, "sentry_buff_tier");
         SENTRY_TARGETS_KEY = new NamespacedKey(plugin, "sentry_targets_tier");
+        SENTRY_ALLOWED_TARGETS_KEY = new NamespacedKey(plugin, "sentry_allowed_targets");
     }
 
     public static NamespacedKey getSentryTypeKey() {
@@ -40,9 +42,9 @@ public final class SentryCoreItem {
     /**
      * Builds the Sentry Core item: a Conduit with a hidden enchantment glimmer,
      * a coloured display name, and a PDC tag identifying it as a sentry core.
-     * Optionally assigns an owner and persists upgrade tier levels.
+     * Optionally assigns an owner, persists upgrade tier levels, and allowed targets.
      */
-    public static ItemStack buildItem(String ownerName, int rangeTier, int rechargeTier, int damageTier, int buffTier, int targetsTier) {
+    public static ItemStack buildItem(String ownerName, int rangeTier, int rechargeTier, int damageTier, int buffTier, int targetsTier, java.util.Set<org.bukkit.entity.EntityType> allowedTargets) {
         ItemStack item = new ItemStack(Material.CONDUIT, 1);
         ItemMeta meta = item.getItemMeta();
 
@@ -65,6 +67,11 @@ public final class SentryCoreItem {
         meta.getPersistentDataContainer().set(SENTRY_DAMAGE_KEY, PersistentDataType.INTEGER, damageTier);
         meta.getPersistentDataContainer().set(SENTRY_BUFF_KEY, PersistentDataType.INTEGER, buffTier);
         meta.getPersistentDataContainer().set(SENTRY_TARGETS_KEY, PersistentDataType.INTEGER, targetsTier);
+
+        if (allowedTargets != null) {
+            String targetsStr = allowedTargets.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(","));
+            meta.getPersistentDataContainer().set(SENTRY_ALLOWED_TARGETS_KEY, PersistentDataType.STRING, targetsStr);
+        }
 
         java.util.List<Component> lore = new java.util.ArrayList<>();
         lore.add(Component.empty());
@@ -121,6 +128,20 @@ public final class SentryCoreItem {
     public static int getTargetsTier(ItemStack item) {
         if (!isSentryCore(item) || item.getItemMeta() == null) return 0;
         return item.getItemMeta().getPersistentDataContainer().getOrDefault(SENTRY_TARGETS_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    public static java.util.Set<org.bukkit.entity.EntityType> getAllowedTargets(ItemStack item) {
+        if (!isSentryCore(item) || item.getItemMeta() == null) return SentryTargets.getDefaultTargets();
+        String targetsStr = item.getItemMeta().getPersistentDataContainer().get(SENTRY_ALLOWED_TARGETS_KEY, PersistentDataType.STRING);
+        if (targetsStr == null || targetsStr.isEmpty()) return SentryTargets.getDefaultTargets();
+        
+        java.util.Set<org.bukkit.entity.EntityType> targets = new java.util.HashSet<>();
+        for (String s : targetsStr.split(",")) {
+            try {
+                targets.add(org.bukkit.entity.EntityType.valueOf(s));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        return targets.isEmpty() ? SentryTargets.getDefaultTargets() : targets;
     }
 
     /**

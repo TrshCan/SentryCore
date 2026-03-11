@@ -16,6 +16,7 @@ public class SentryData {
     private int damageTier = 0;
     private int buffTier = 0;
     private int targetsTier = 0;
+    private java.util.Set<org.bukkit.entity.EntityType> allowedTargets = SentryTargets.getDefaultTargets();
 
     public SentryData(String ownerName) {
         this.active = false;                 // starts INACTIVE on placement
@@ -41,6 +42,9 @@ public class SentryData {
 
     public int getTargetsTier() { return targetsTier; }
     public void setTargetsTier(int targetsTier) { this.targetsTier = targetsTier; }
+
+    public java.util.Set<org.bukkit.entity.EntityType> getAllowedTargets() { return allowedTargets; }
+    public void setAllowedTargets(java.util.Set<org.bukkit.entity.EntityType> allowedTargets) { this.allowedTargets = allowedTargets; }
 
     public String getOwnerName() { return ownerName; }
     public void setOwnerName(String ownerName) { this.ownerName = ownerName; }

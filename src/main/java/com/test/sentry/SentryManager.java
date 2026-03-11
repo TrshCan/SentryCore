@@ -25,7 +25,7 @@ public final class SentryManager {
 
     private final JavaPlugin plugin;
     private final SentryConfig config;
-    private final NamespacedKey ownerKey, modeKey, rangeKey, rechargeKey, damageKey, buffKey, targetsKey;
+    private final NamespacedKey ownerKey, modeKey, rangeKey, rechargeKey, damageKey, buffKey, targetsKey, allowedTargetsKey;
 
     // Key: block location of the Conduit. Value: mutable sentry state.
     private final Map<Location, SentryData> sentries = new HashMap<>();
@@ -40,13 +40,14 @@ public final class SentryManager {
         this.damageKey = new NamespacedKey(plugin, "sentry_damage");
         this.buffKey = new NamespacedKey(plugin, "sentry_buff");
         this.targetsKey = new NamespacedKey(plugin, "sentry_targets");
+        this.allowedTargetsKey = new NamespacedKey(plugin, "sentry_allowed_targets");
     }
 
     public SentryConfig getConfig() {
         return config;
     }
 
-    public void addSentry(Location coreLoc, String ownerName, int rangeTier, int rechargeTier, int damageTier, int buffTier, int targetsTier) {
+    public void addSentry(Location coreLoc, String ownerName, int rangeTier, int rechargeTier, int damageTier, int buffTier, int targetsTier, java.util.Set<org.bukkit.entity.EntityType> allowedTargets) {
         Location loc = coreLoc.toBlockLocation();
         if (!sentries.containsKey(loc)) {
             SentryData data = new SentryData(ownerName);
@@ -55,6 +56,9 @@ public final class SentryManager {
             data.setDamageTier(damageTier);
             data.setBuffTier(buffTier);
             data.setTargetsTier(targetsTier);
+            if (allowedTargets != null) {
+                data.setAllowedTargets(new java.util.HashSet<>(allowedTargets));
+            }
             
             sentries.put(loc, data);
             // Sentry starts inactive, leaving the conduit as-is
@@ -83,6 +87,7 @@ public final class SentryManager {
                 pdc.remove(damageKey);
                 pdc.remove(buffKey);
                 pdc.remove(targetsKey);
+                pdc.remove(allowedTargetsKey);
                 tile.update();
             }
         }
@@ -158,6 +163,12 @@ public final class SentryManager {
             pdc.set(damageKey, PersistentDataType.INTEGER, data.getDamageTier());
             pdc.set(buffKey, PersistentDataType.INTEGER, data.getBuffTier());
             pdc.set(targetsKey, PersistentDataType.INTEGER, data.getTargetsTier());
+
+            if (data.getAllowedTargets() != null) {
+                String targetsStr = data.getAllowedTargets().stream().map(Enum::name).collect(java.util.stream.Collectors.joining(","));
+                pdc.set(allowedTargetsKey, PersistentDataType.STRING, targetsStr);
+            }
+
             tile.update();
         }
     }
@@ -185,6 +196,19 @@ public final class SentryManager {
                 data.setBuffTier(pdc.getOrDefault(buffKey, PersistentDataType.INTEGER, 0));
                 data.setTargetsTier(pdc.getOrDefault(targetsKey, PersistentDataType.INTEGER, 0));
                 
+                String targetsStr = pdc.get(allowedTargetsKey, PersistentDataType.STRING);
+                if (targetsStr != null && !targetsStr.isEmpty()) {
+                    java.util.Set<org.bukkit.entity.EntityType> targets = new java.util.HashSet<>();
+                    for (String s : targetsStr.split(",")) {
+                        try {
+                            targets.add(org.bukkit.entity.EntityType.valueOf(s));
+                        } catch (IllegalArgumentException ignored) {}
+                    }
+                    if (!targets.isEmpty()) {
+                        data.setAllowedTargets(targets);
+                    }
+                }
+
                 return data;
             }
         }

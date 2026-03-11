@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 public class SentryGuiHolder implements InventoryHolder {
 
     public enum GuiType {
-        MAIN, MODE, UPGRADE
+        MAIN, MODE, UPGRADE, TARGET_LIST
     }
 
     private final Location sentryLocation;
