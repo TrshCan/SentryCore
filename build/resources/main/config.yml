@@ -1,5 +1,17 @@
 max-tier: 10
 
+upgrade-costs:
+  1: 1    # Cost to reach Tier 1
+  2: 1    # Cost to reach Tier 2
+  3: 2    # Cost to reach Tier 3
+  4: 2    # Cost to reach Tier 4
+  5: 3    # Cost to reach Tier 5
+  6: 3    # Cost to reach Tier 6
+  7: 4    # Cost to reach Tier 7
+  8: 4    # Cost to reach Tier 8
+  9: 5    # Cost to reach Tier 9
+  10: 5   # Cost to reach Tier 10
+
 upgrades:
   range:
     1: 1

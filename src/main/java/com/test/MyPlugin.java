@@ -2,6 +2,7 @@ package com.test;
 
 import com.test.sentry.RecipeManager;
 import com.test.sentry.SentryCoreItem;
+import com.test.sentry.CondensedObsidianItem;
 import com.test.sentry.SentryGuiListener;
 import com.test.sentry.SentryListener;
 import com.test.sentry.SentryManager;
@@ -18,6 +19,7 @@ public class MyPlugin extends JavaPlugin {
     public void onEnable() {
         // Initialise the PDC key (must happen before recipe or item creation)
         SentryCoreItem.init(this);
+        CondensedObsidianItem.init(this);
 
         // Register custom recipe
         RecipeManager.register(this);

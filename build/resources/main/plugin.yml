@@ -1,5 +1,5 @@
 name: SentryCore
-version: 1.0-SNAPSHOT
+version: 1.1
 main: com.test.MyPlugin
 api-version: "1.21"
 description: A tower-defense style Sentry plugin for Paper 1.21.1.

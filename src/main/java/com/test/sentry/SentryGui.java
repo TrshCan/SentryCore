@@ -59,7 +59,7 @@ public final class SentryGui {
      * @param coreLoc the sentry's conduit block location
      * @param data    the sentry's current state
      */
-    public static void openMain(Player player, Location coreLoc, SentryData data) {
+    public static void openMain(Player player, Location coreLoc, SentryData data, SentryConfig config) {
         SentryGuiHolder holder = new SentryGuiHolder(coreLoc, SentryGuiHolder.GuiType.MAIN);
         String ownerName = data.getOwnerName() != null ? data.getOwnerName() : "Unknown";
         Inventory inv = Bukkit.createInventory(holder, 36, Component.text("§5" + ownerName + "'s Sentry"));
@@ -81,7 +81,7 @@ public final class SentryGui {
         inv.setItem(16, buildAccessFuelItem());
 
         // Slot 22 — Upgrade Menu (Nether Star)
-        inv.setItem(22, buildUpgradeMenuItem(data));
+        inv.setItem(22, buildUpgradeMenuItem(data, config));
 
         // Slot 24 — Target List (Zombie Head)
         inv.setItem(24, buildTargetListItem());
@@ -247,7 +247,7 @@ public final class SentryGui {
         return item;
     }
 
-    private static ItemStack buildUpgradeMenuItem(SentryData data) {
+    private static ItemStack buildUpgradeMenuItem(SentryData data, SentryConfig config) {
         ItemStack item = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(
@@ -258,7 +258,7 @@ public final class SentryGui {
         );
         meta.lore(List.of(
             Component.text("Click to View/Purchase Upgrades").color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false),
-            Component.text("Total Tier: " + data.getTotalTier() + "/40").color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false)
+            Component.text("Total Tier: " + data.getTotalTier() + "/" + config.getMaxTier()).color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false)
         ));
         item.setItemMeta(meta);
         return item;

@@ -46,7 +46,7 @@ public class SentryGuiListener implements Listener {
         // It's a registered sentry — open the control GUI and cancel block interaction
         event.setCancelled(true);
         SentryData data = sentryManager.getData(coreLoc);
-        SentryGui.openMain(player, coreLoc, data);
+        SentryGui.openMain(player, coreLoc, data, sentryManager.getConfig());
     }
 
     // ─────────────── Open GUI on Shift + Right-Click End Crystal ───────────────
@@ -64,7 +64,7 @@ public class SentryGuiListener implements Listener {
             SentryData data = sentryManager.getData(coreLoc);
             if (data != null && crystal.getUniqueId().equals(data.getCrystalUuid())) {
                 event.setCancelled(true);
-                SentryGui.openMain(player, coreLoc, data);
+                SentryGui.openMain(player, coreLoc, data, sentryManager.getConfig());
                 return;
             }
         }
@@ -112,7 +112,7 @@ public class SentryGuiListener implements Listener {
             if (slot == 10) {
                 sentryManager.setSentryActiveState(coreLoc, data, !data.isActive());
                 // Refresh the GUI
-                SentryGui.openMain(player, coreLoc, data);
+                SentryGui.openMain(player, coreLoc, data, sentryManager.getConfig());
             }
             // Slot 13 — Open mode selector
             else if (slot == 13) {
@@ -163,7 +163,7 @@ public class SentryGuiListener implements Listener {
         // ── Mode Selector GUI ──
         else if (holder.getType() == SentryGuiHolder.GuiType.MODE) {
             if (slot == 8) {
-                SentryGui.openMain(player, coreLoc, data);
+                SentryGui.openMain(player, coreLoc, data, sentryManager.getConfig());
                 return;
             }
 
@@ -187,7 +187,7 @@ public class SentryGuiListener implements Listener {
             SentryConfig config = sentryManager.getConfig();
 
             if (slot == 17) {
-                SentryGui.openMain(player, coreLoc, data);
+                SentryGui.openMain(player, coreLoc, data, sentryManager.getConfig());
                 return;
             }
 
@@ -265,7 +265,7 @@ public class SentryGuiListener implements Listener {
         // ── Target List GUI ──
         else if (holder.getType() == SentryGuiHolder.GuiType.TARGET_LIST) {
             if (slot == 53) {
-                SentryGui.openMain(player, coreLoc, data);
+                SentryGui.openMain(player, coreLoc, data, sentryManager.getConfig());
                 return;
             }
 

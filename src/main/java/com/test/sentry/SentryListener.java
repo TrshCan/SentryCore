@@ -51,11 +51,18 @@ public class SentryListener implements Listener {
                  sentryManager.addSentry(placed.getLocation(), ownerName, rangeTier, rechargeTier, damageTier, buffTier, targetsTier, allowedTargets);
             }
             
+            // Force disable waterlogging
+            if (placed.getBlockData() instanceof org.bukkit.block.data.Waterlogged wl) {
+                wl.setWaterlogged(false);
+                placed.setBlockData(wl);
+            }
+
             event.getPlayer().sendMessage(
                 Component.text("✔ Sentry Core placed! Shift+Right-Click to activate.")
                     .color(TextColor.fromHexString("#AA00FF"))
             );
         } else {
+            event.setCancelled(true);
             event.getPlayer().sendMessage(
                 Component.text("✘ Invalid structure! Place on Obsidian above a Barrel surrounded by Obsidian.")
                     .color(TextColor.fromHexString("#FF4444"))
@@ -91,10 +98,13 @@ public class SentryListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         Block broken = event.getBlock();
 
-        // 1. If the core itself is broken — remove it directly
+        // 1. If the core itself is broken directly — prevent it
         if (broken.getType() == Material.CONDUIT && sentryManager.isSentry(broken.getLocation())) {
-            event.setDropItems(false); // prevent normal conduit drop
-            dropCoreAndRemove(broken.getLocation());
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(
+                Component.text("You cannot break the core directly. Pick it up from the GUI or break the structure.")
+                    .color(TextColor.fromHexString("#FF4444"))
+            );
             return;
         }
 
