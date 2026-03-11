@@ -11,6 +11,7 @@ import org.bukkit.block.TileState;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.Color;
 import org.bukkit.NamespacedKey;
 
 import java.util.Collections;
@@ -26,13 +27,18 @@ public final class SentryManager {
     private final JavaPlugin plugin;
     private final SentryConfig config;
     private final NamespacedKey ownerKey, modeKey, rangeKey, rechargeKey, damageKey, buffKey, targetsKey, allowedTargetsKey;
+    private final Color baseColor; // Added baseColor field
 
-    // Key: block location of the Conduit. Value: mutable sentry state.
-    private final Map<Location, SentryData> sentries = new HashMap<>();
+    // Tracking all active Sentry Cores by Location
+    private final Map<Location, SentryData> activeSentries = new HashMap<>();
 
-    public SentryManager(JavaPlugin plugin, SentryConfig config) {
+    // Tracks cooldowns and effects for the new reactive Emergency Buff system
+    private final SentryEmergencyBuff emergencyBuffManager;
+
+    public SentryManager(JavaPlugin plugin, SentryConfig config) { // Changed MyPlugin to JavaPlugin to match original
         this.plugin = plugin;
         this.config = config;
+        this.baseColor = Color.fromRGB(23, 23, 23);  // Example core color
         this.ownerKey = new NamespacedKey(plugin, "sentry_owner");
         this.modeKey = new NamespacedKey(plugin, "sentry_mode");
         this.rangeKey = new NamespacedKey(plugin, "sentry_range");
@@ -41,6 +47,11 @@ public final class SentryManager {
         this.buffKey = new NamespacedKey(plugin, "sentry_buff");
         this.targetsKey = new NamespacedKey(plugin, "sentry_targets");
         this.allowedTargetsKey = new NamespacedKey(plugin, "sentry_allowed_targets");
+        this.emergencyBuffManager = new SentryEmergencyBuff(this);
+    }
+
+    public SentryEmergencyBuff getEmergencyBuffManager() {
+        return emergencyBuffManager;
     }
 
     public SentryConfig getConfig() {
@@ -49,7 +60,7 @@ public final class SentryManager {
 
     public void addSentry(Location coreLoc, String ownerName, int rangeTier, int rechargeTier, int damageTier, int buffTier, int targetsTier, java.util.Set<org.bukkit.entity.EntityType> allowedTargets) {
         Location loc = coreLoc.toBlockLocation();
-        if (!sentries.containsKey(loc)) {
+        if (!activeSentries.containsKey(loc)) {
             SentryData data = new SentryData(ownerName);
             data.setRangeTier(rangeTier);
             data.setRechargeTier(rechargeTier);
@@ -60,7 +71,7 @@ public final class SentryManager {
                 data.setAllowedTargets(new java.util.HashSet<>(allowedTargets));
             }
             
-            sentries.put(loc, data);
+            activeSentries.put(loc, data);
             // Sentry starts inactive, leaving the conduit as-is
             setSentryActiveState(loc, data, false);
             saveToPDC(loc, data);
@@ -91,28 +102,29 @@ public final class SentryManager {
                 tile.update();
             }
         }
-        sentries.remove(loc);
+        activeSentries.remove(loc);
     }
 
     /** Returns the SentryData for the given location, or null if not a sentry. */
     public SentryData getData(Location coreLoc) {
-        return sentries.get(coreLoc.toBlockLocation());
+        return activeSentries.get(coreLoc.toBlockLocation());
     }
 
     public boolean isSentry(Location loc) {
-        return sentries.containsKey(loc.toBlockLocation());
+        return activeSentries.containsKey(loc.toBlockLocation());
     }
 
     /** Returns an unmodifiable view of all registered sentry locations. */
     public Set<Location> getActiveSentries() {
-        return Collections.unmodifiableSet(sentries.keySet());
+        return Collections.unmodifiableSet(activeSentries.keySet());
     }
 
     public void clear() {
-        for (Map.Entry<Location, SentryData> entry : sentries.entrySet()) {
+        for (Map.Entry<Location, SentryData> entry : activeSentries.entrySet()) {
             setSentryActiveState(entry.getKey(), entry.getValue(), false);
         }
-        sentries.clear();
+        activeSentries.clear();
+        emergencyBuffManager.cleanup();
     }
 
     /**

@@ -20,7 +20,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 public class SentryTask extends BukkitRunnable {
@@ -78,11 +77,7 @@ public class SentryTask extends BukkitRunnable {
         // Only fire when this mode's modified tick interval aligns
         if (tickCount % realTickInterval != 0) return;
 
-        // Apply Passive Buff (Beacon) if tier > 0
-        int buffAmplifier = config.getBuffAmplifier(data.getBuffTier());
-        if (data.getBuffTier() > 0) {
-            applyPassiveBuff(coreLoc, buffAmplifier);
-        }
+        // Passive beacon functionality has been removed in favor of Reacting Buffs on Damage.
 
         // Scan the full chest inventory for the required fuel material
         Inventory inventory = container.getInventory();
@@ -217,21 +212,6 @@ public class SentryTask extends BukkitRunnable {
             inventory.setItem(slot, null);
         } else {
             item.setAmount(item.getAmount() - 1);
-        }
-    }
-
-    /**
-     * Applies a passive buff (Resistance and Regeneration) to players near the Sentry.
-     * The effect strength corresponds to the buff tier amplifier.
-     */
-    private void applyPassiveBuff(Location coreLoc, int amplifier) {
-        Collection<org.bukkit.entity.Player> players = coreLoc.getWorld().getNearbyEntitiesByType(
-            org.bukkit.entity.Player.class, coreLoc, 15.0); // beacon range is roughly 15-20 blocks for tier 1
-
-        for (org.bukkit.entity.Player p : players) {
-            // Re-apply effect every few ticks so it doesn't run out while they're nearby
-            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, amplifier, true, false));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, amplifier, true, false));
         }
     }
 }

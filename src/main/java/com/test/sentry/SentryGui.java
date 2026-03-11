@@ -145,9 +145,8 @@ public final class SentryGui {
         inv.setItem(4, buildUpgradeStatItem("Damage", Material.DIAMOND_SWORD, data.getDamageTier(),
             config.getDamageBonus(data.getDamageTier()), config.getDamageBonus(data.getDamageTier() + 1), "% Bonus", data, config));
 
-        // Slot 6 — Passive Buff (Beacon)
-        inv.setItem(6, buildUpgradeStatItem("Passive Buff", Material.BEACON, data.getBuffTier(),
-            config.getBuffAmplifier(data.getBuffTier()), config.getBuffAmplifier(data.getBuffTier() + 1), "Amplifier", data, config));
+        // Slot 6 — Emergency Healing (Golden Apple)
+        inv.setItem(6, buildEmergencyBuffItem(data, config));
 
         // Slot 8 — Targets (Crossbow)
         inv.setItem(8, buildUpgradeStatItem("Multi-Target", Material.CROSSBOW, data.getTargetsTier(),
@@ -262,6 +261,59 @@ public final class SentryGui {
         ));
         item.setItemMeta(meta);
         return item;
+    }
+
+    private static ItemStack buildEmergencyBuffItem(SentryData data, SentryConfig config) {
+        ItemStack item = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
+        ItemMeta meta = item.getItemMeta();
+        boolean canUpgrade = data.getTotalTier() < config.getMaxTier();
+        int tier = data.getBuffTier();
+
+        meta.displayName(
+            Component.text("Emergency Healing Upgrade").color(GOLD_COLOR)
+                .decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true)
+        );
+
+        List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.text("Tier: " + tier).color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false));
+        
+        if (tier > 0) {
+            lore.add(Component.text("Current: " + getEmergencyBuffDesc(tier)).color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+        } else {
+            lore.add(Component.text("Current: No healing").color(INACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+        }
+        
+        if (canUpgrade) {
+            int cost = config.getUpgradeCost(tier + 1);
+            lore.add(Component.text("Next Tier: " + getEmergencyBuffDesc(tier + 1)).color(GOLD_COLOR).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(Component.text("Cost: " + cost + " Condensed Obsidian").color(TextColor.fromHexString("#D455FF")).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(Component.text("► Click to Upgrade").color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+        } else {
+            lore.add(Component.empty());
+            lore.add(Component.text("Max Total Tier Reached (40)").color(INACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+        }
+
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static String getEmergencyBuffDesc(int tier) {
+        return switch (tier) {
+            case 1 -> "Trigger: 2❤ | Regen I (5s) | CD: 60s";
+            case 2 -> "Trigger: 2.5❤ | Regen I (10s) | CD: 60s";
+            case 3 -> "Trigger: 2.5❤ | Regen II (8s), Res I (5s) | CD: 60s";
+            case 4 -> "Trigger: 3❤ | Regen II (10s), Res I (8s) | CD: 60s";
+            case 5 -> "Trigger: 3.5❤ | Regen II (12s), Absorb II (20s) | CD: 90s";
+            case 6 -> "Trigger: 4❤ | Regen III (8s), Speed II (10s) | CD: 90s";
+            case 7 -> "Trigger: 4.5❤ | Regen III (10s), Res II (10s) | CD: 2m";
+            case 8 -> "Trigger: 5❤ | Inst. Health I, Regen I (10s), Res III (5s) | CD: 3m";
+            case 9 -> "Trigger: 6❤ | Inst. Health II, Regen I (10s), Res IV (5s) | CD: 5m";
+            case 10 -> "FATAL Trigger | Totem Res, Massive Buffs | CD: 10m";
+            default -> "None";
+        };
     }
 
     private static ItemStack buildUpgradeStatItem(String statName, Material mat, int currentTier, int currentVal, int nextVal, String unit, SentryData data, SentryConfig config) {

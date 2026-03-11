@@ -31,9 +31,7 @@ public class SentryConfig {
         return getUpgradeValue("damage", tier);
     }
 
-    public int getBuffAmplifier(int tier) {
-        return getUpgradeValue("buff", tier);
-    }
+
 
     public int getTargetsBonus(int tier) {
         return getUpgradeValue("targets", tier);
