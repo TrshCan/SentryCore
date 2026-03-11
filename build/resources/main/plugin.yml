@@ -1,0 +1,7 @@
+name: SentryCore
+version: 1.0-SNAPSHOT
+main: com.test.MyPlugin
+api-version: "1.21"
+description: A Paper plugin.
+authors:
+  - Author
