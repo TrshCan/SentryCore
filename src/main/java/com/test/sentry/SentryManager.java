@@ -20,10 +20,10 @@ public final class SentryManager {
     // Key: block location of the Conduit. Value: mutable sentry state.
     private final Map<Location, SentryData> sentries = new HashMap<>();
 
-    public void addSentry(Location coreLoc) {
+    public void addSentry(Location coreLoc, String ownerName) {
         Location loc = coreLoc.toBlockLocation();
         if (!sentries.containsKey(loc)) {
-            SentryData data = new SentryData();
+            SentryData data = new SentryData(ownerName);
             sentries.put(loc, data);
             // Sentry starts inactive, leaving the conduit as-is
             setSentryActiveState(loc, data, false);

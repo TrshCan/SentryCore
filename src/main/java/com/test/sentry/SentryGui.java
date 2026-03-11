@@ -59,9 +59,10 @@ public final class SentryGui {
      * @param data    the sentry's current state
      */
     public static void openMain(Player player, Location coreLoc, SentryData data) {
-        // Title encodes the sentry location so the listener can identify which sentry was clicked
-        String title = buildMainTitle(coreLoc);
-        Inventory inv = Bukkit.createInventory(null, 36, Component.text(title));
+        SentryGuiHolder holder = new SentryGuiHolder(coreLoc, SentryGuiHolder.GuiType.MAIN);
+        String ownerName = data.getOwnerName() != null ? data.getOwnerName() : "Unknown";
+        Inventory inv = Bukkit.createInventory(holder, 36, Component.text("§5" + ownerName + "'s Sentry"));
+        holder.setInventory(inv);
 
         // Fill with gray glass panes
         ItemStack filler = buildFiller();
@@ -90,8 +91,10 @@ public final class SentryGui {
      * Opens the mode-selection sub-GUI for a player.
      */
     public static void openModeSelector(Player player, Location coreLoc, SentryData data) {
-        String title = buildModeTitle(coreLoc);
-        Inventory inv = Bukkit.createInventory(null, 9, Component.text(title));
+        SentryGuiHolder holder = new SentryGuiHolder(coreLoc, SentryGuiHolder.GuiType.MODE);
+        String ownerName = data.getOwnerName() != null ? data.getOwnerName() : "Unknown";
+        Inventory inv = Bukkit.createInventory(holder, 9, Component.text("§5" + ownerName + "'s Sentry Mode"));
+        holder.setInventory(inv);
 
         // Fill with filler
         ItemStack filler = buildFiller();
@@ -222,41 +225,7 @@ public final class SentryGui {
         return pane;
     }
 
-    // ─────────────────────── Title Encoding ───────────────────────
-
-    /**
-     * Encodes the sentry block location into the GUI title so the listener
-     * can safely look up the correct SentryData without using fragile metadata.
-     * Format: "§5Sentry Control|world,x,y,z"
-     */
-    public static String buildMainTitle(Location loc) {
-        return MAIN_GUI_TITLE_PREFIX + "|" + encodeLocation(loc);
-    }
-
-    public static String buildModeTitle(Location loc) {
-        return MODE_GUI_TITLE_PREFIX + "|" + encodeLocation(loc);
-    }
-
-    public static Location decodeLocationFromTitle(String title) {
-        try {
-            int sep = title.indexOf('|');
-            if (sep == -1) return null;
-            String[] parts = title.substring(sep + 1).split(",");
-            if (parts.length != 4) return null;
-            return new Location(
-                Bukkit.getWorld(parts[0]),
-                Integer.parseInt(parts[1]),
-                Integer.parseInt(parts[2]),
-                Integer.parseInt(parts[3])
-            );
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static String encodeLocation(Location loc) {
-        return loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
-    }
+    // Removed title encoding methods (replaced by SentryGuiHolder)
 
     private static String formatMaterial(Material mat) {
         String name = mat.name().replace('_', ' ');

@@ -1,6 +1,6 @@
 package com.test.sentry;
 
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -91,22 +91,22 @@ public class SentryGuiListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        String rawTitle = PlainTextComponentSerializer.plainText().serialize(event.getView().title());
+        org.bukkit.inventory.InventoryHolder invHolder = event.getInventory().getHolder();
+        if (!(invHolder instanceof SentryGuiHolder holder)) return;
 
+        event.setCancelled(true); // never let players take items from our GUI
+
+        Location coreLoc = holder.getSentryLocation();
+        SentryData data = sentryManager.getData(coreLoc);
+        if (data == null) return;
+
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType().isAir()) return;
+
+        int slot = event.getRawSlot();
 
         // ── Main Control GUI ──
-        if (rawTitle.startsWith(SentryGui.MAIN_GUI_TITLE_PREFIX)) {
-            event.setCancelled(true); // never let players take items from our GUI
-
-            Location coreLoc = SentryGui.decodeLocationFromTitle(rawTitle);
-            if (coreLoc == null) return;
-            SentryData data = sentryManager.getData(coreLoc);
-            if (data == null) return;
-
-            ItemStack clicked = event.getCurrentItem();
-            if (clicked == null || clicked.getType().isAir()) return;
-
-            int slot = event.getRawSlot();
+        if (holder.getType() == SentryGuiHolder.GuiType.MAIN) {
 
             // Slot 10 — Toggle
             if (slot == 10) {
@@ -138,7 +138,7 @@ public class SentryGuiListener implements Listener {
                 player.closeInventory();
                 
                 // Drop the Sentry Core item on the ground
-                coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem());
+                coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(data.getOwnerName()));
                 player.sendMessage(
                     net.kyori.adventure.text.Component.text("Sentry picked up.")
                         .color(net.kyori.adventure.text.format.TextColor.fromHexString("#AAAAAA"))
@@ -147,15 +147,9 @@ public class SentryGuiListener implements Listener {
         }
 
         // ── Mode Selector GUI ──
-        else if (rawTitle.startsWith(SentryGui.MODE_GUI_TITLE_PREFIX)) {
-            event.setCancelled(true);
+        else if (holder.getType() == SentryGuiHolder.GuiType.MODE) {
 
-            Location coreLoc = SentryGui.decodeLocationFromTitle(rawTitle);
-            if (coreLoc == null) return;
-            SentryData data = sentryManager.getData(coreLoc);
-            if (data == null) return;
 
-            int slot = event.getRawSlot();
             SentryMode newMode = switch (slot) {
                 case 2 -> SentryMode.AMETHYST;
                 case 4 -> SentryMode.PRISMARINE;

@@ -16,9 +16,11 @@ import net.kyori.adventure.text.format.TextDecoration;
 public final class SentryCoreItem {
 
     private static NamespacedKey SENTRY_TYPE_KEY;
+    private static NamespacedKey SENTRY_OWNER_KEY;
 
     public static void init(JavaPlugin plugin) {
         SENTRY_TYPE_KEY = new NamespacedKey(plugin, "sentry_type");
+        SENTRY_OWNER_KEY = new NamespacedKey(plugin, "sentry_owner");
     }
 
     public static NamespacedKey getSentryTypeKey() {
@@ -28,8 +30,9 @@ public final class SentryCoreItem {
     /**
      * Builds the Sentry Core item: a Conduit with a hidden enchantment glimmer,
      * a coloured display name, and a PDC tag identifying it as a sentry core.
+     * Optionally assigns an owner.
      */
-    public static ItemStack buildItem() {
+    public static ItemStack buildItem(String ownerName) {
         ItemStack item = new ItemStack(Material.CONDUIT, 1);
         ItemMeta meta = item.getItemMeta();
 
@@ -48,8 +51,28 @@ public final class SentryCoreItem {
         // PDC tag: sentry_type = "core"
         meta.getPersistentDataContainer().set(SENTRY_TYPE_KEY, PersistentDataType.STRING, "core");
 
+        if (ownerName != null) {
+            meta.getPersistentDataContainer().set(SENTRY_OWNER_KEY, PersistentDataType.STRING, ownerName);
+            meta.lore(java.util.List.of(
+                Component.empty(),
+                Component.text("Owner: " + ownerName)
+                    .color(TextColor.fromHexString("#AAAAAA"))
+                    .decoration(TextDecoration.ITALIC, false)
+            ));
+        }
+
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Extracts the owner's name from a Sentry Core item, or null if not found.
+     */
+    public static String getOwner(ItemStack item) {
+        if (!isSentryCore(item)) return null;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return null;
+        return meta.getPersistentDataContainer().get(SENTRY_OWNER_KEY, PersistentDataType.STRING);
     }
 
     /**

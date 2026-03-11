@@ -10,11 +10,16 @@ public class SentryData {
     private boolean active;
     private SentryMode mode;
     private UUID crystalUuid;
+    private String ownerName;
 
-    public SentryData() {
+    public SentryData(String ownerName) {
         this.active = false;                 // starts INACTIVE on placement
         this.mode = SentryMode.AMETHYST;     // default mode
+        this.ownerName = ownerName;
     }
+
+    public String getOwnerName() { return ownerName; }
+    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }

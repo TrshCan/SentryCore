@@ -9,7 +9,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.Location;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -31,7 +33,8 @@ public class SentryListener implements Listener {
         if (!SentryCoreItem.isSentryCore(itemInHand)) return;
 
         if (StructureChecker.isValidStructure(placed)) {
-            sentryManager.addSentry(placed.getLocation());
+            String ownerName = SentryCoreItem.getOwner(itemInHand);
+            sentryManager.addSentry(placed.getLocation(), ownerName);
             event.getPlayer().sendMessage(
                 Component.text("✔ Sentry Core placed! Shift+Right-Click to activate.")
                     .color(TextColor.fromHexString("#AA00FF"))
@@ -45,12 +48,29 @@ public class SentryListener implements Listener {
     }
 
     @EventHandler
+    public void onCraftItem(CraftItemEvent event) {
+        ItemStack currentItem = event.getCurrentItem();
+        if (currentItem != null && SentryCoreItem.isSentryCore(currentItem)) {
+            String ownerName = event.getWhoClicked().getName();
+            event.setCurrentItem(SentryCoreItem.buildItem(ownerName));
+        }
+    }
+
+    private void dropCoreAndRemove(Location coreLoc) {
+        SentryData data = sentryManager.getData(coreLoc);
+        String ownerName = data != null ? data.getOwnerName() : null;
+        sentryManager.removeSentry(coreLoc);
+        coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(ownerName));
+    }
+
+    @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Block broken = event.getBlock();
 
         // 1. If the core itself is broken — remove it directly
         if (broken.getType() == Material.CONDUIT && sentryManager.isSentry(broken.getLocation())) {
-            sentryManager.removeSentry(broken.getLocation());
+            event.setDropItems(false); // prevent normal conduit drop
+            dropCoreAndRemove(broken.getLocation());
             return;
         }
 
@@ -58,7 +78,7 @@ public class SentryListener implements Listener {
         if (broken.getType() == Material.BARREL) {
             Block coreAbove = broken.getRelative(0, 2, 0);
             if (sentryManager.isSentry(coreAbove.getLocation())) {
-                sentryManager.removeSentry(coreAbove.getLocation());
+                dropCoreAndRemove(coreAbove.getLocation());
                 return;
             }
         }
@@ -68,7 +88,7 @@ public class SentryListener implements Listener {
             // Case A: Is it the obsidian block directly beneath the core?
             Block coreAbove = broken.getRelative(BlockFace.UP);
             if (sentryManager.isSentry(coreAbove.getLocation())) {
-                sentryManager.removeSentry(coreAbove.getLocation());
+                dropCoreAndRemove(coreAbove.getLocation());
                 return;
             }
 
@@ -80,7 +100,7 @@ public class SentryListener implements Listener {
                 if (sentryManager.isSentry(potentialCore.getLocation())) {
                     // Frame is now broken
                     if (!StructureChecker.isObsidianFrame(barrel)) {
-                        sentryManager.removeSentry(potentialCore.getLocation());
+                        dropCoreAndRemove(potentialCore.getLocation());
                     }
                 }
             }
