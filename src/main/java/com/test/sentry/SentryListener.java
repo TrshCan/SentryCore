@@ -34,7 +34,22 @@ public class SentryListener implements Listener {
 
         if (StructureChecker.isValidStructure(placed)) {
             String ownerName = SentryCoreItem.getOwner(itemInHand);
-            sentryManager.addSentry(placed.getLocation(), ownerName);
+            int rangeTier = SentryCoreItem.getRangeTier(itemInHand);
+            int rechargeTier = SentryCoreItem.getRechargeTier(itemInHand);
+            int damageTier = SentryCoreItem.getDamageTier(itemInHand);
+            int buffTier = SentryCoreItem.getBuffTier(itemInHand);
+            int targetsTier = SentryCoreItem.getTargetsTier(itemInHand);
+            
+            // Try to load existing data from obsidian block first (in case of server crash)
+            SentryData existingData = sentryManager.loadFromPDC(placed.getLocation());
+            if (existingData != null) {
+                 sentryManager.addSentry(placed.getLocation(), existingData.getOwnerName(),
+                    existingData.getRangeTier(), existingData.getRechargeTier(),
+                    existingData.getDamageTier(), existingData.getBuffTier(), existingData.getTargetsTier());
+            } else {
+                 sentryManager.addSentry(placed.getLocation(), ownerName, rangeTier, rechargeTier, damageTier, buffTier, targetsTier);
+            }
+            
             event.getPlayer().sendMessage(
                 Component.text("✔ Sentry Core placed! Shift+Right-Click to activate.")
                     .color(TextColor.fromHexString("#AA00FF"))
@@ -52,15 +67,22 @@ public class SentryListener implements Listener {
         ItemStack currentItem = event.getCurrentItem();
         if (currentItem != null && SentryCoreItem.isSentryCore(currentItem)) {
             String ownerName = event.getWhoClicked().getName();
-            event.setCurrentItem(SentryCoreItem.buildItem(ownerName));
+            // Freshly crafted cores are always Tier 0
+            event.setCurrentItem(SentryCoreItem.buildItem(ownerName, 0, 0, 0, 0, 0));
         }
     }
 
     private void dropCoreAndRemove(Location coreLoc) {
         SentryData data = sentryManager.getData(coreLoc);
         String ownerName = data != null ? data.getOwnerName() : null;
+        int r = data != null ? data.getRangeTier() : 0;
+        int rc = data != null ? data.getRechargeTier() : 0;
+        int d = data != null ? data.getDamageTier() : 0;
+        int b = data != null ? data.getBuffTier() : 0;
+        int t = data != null ? data.getTargetsTier() : 0;
+        
         sentryManager.removeSentry(coreLoc);
-        coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(ownerName));
+        coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(ownerName, r, rc, d, b, t));
     }
 
     @EventHandler

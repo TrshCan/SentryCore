@@ -8,8 +8,8 @@ import org.bukkit.Material;
 public enum SentryMode {
 
     AMETHYST("Amethyst Mode", Material.AMETHYST_SHARD, 10),
-    PRISMARINE("Prismarine Mode", Material.PRISMARINE_SHARD, 30),
-    ECHO("Echo Mode", Material.ECHO_SHARD, 80);
+    PRISMARINE("Prismarine Mode", Material.PRISMARINE_SHARD, 20),
+    ECHO("Echo Mode", Material.ECHO_SHARD, 40);
 
     private final String displayName;
     private final Material fuelMaterial;

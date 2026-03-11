@@ -19,11 +19,13 @@ public class SentryAnimationTask extends BukkitRunnable {
 
     private final Location origin;
     private final Monster target;
+    private final double damageMult;
     private int ticksLeft = 20;
 
-    public SentryAnimationTask(Location origin, Monster target) {
+    public SentryAnimationTask(Location origin, Monster target, double damageMult) {
         this.origin = origin;
         this.target = target;
+        this.damageMult = damageMult;
     }
 
     @Override
@@ -40,7 +42,7 @@ public class SentryAnimationTask extends BukkitRunnable {
 
         // On the final tick, deal damage and apply effects
         if (ticksLeft <= 0) {
-            target.damage(10.0);
+            target.damage(10.0 * damageMult);
             target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 1, false, false));
             origin.getWorld().playSound(origin, Sound.ENTITY_GUARDIAN_ATTACK, 1.0f, 1.0f);
             this.cancel();
@@ -66,8 +68,8 @@ public class SentryAnimationTask extends BukkitRunnable {
     /**
      * Starts the Prismarine laser animation task.
      */
-    public static void startPrismarineLaser(JavaPlugin plugin, Location coreLoc, Monster target) {
+    public static void startPrismarineLaser(JavaPlugin plugin, Location coreLoc, Monster target, double damageMult) {
         Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
-        new SentryAnimationTask(shootFrom, target).runTaskTimer(plugin, 0L, 1L);
+        new SentryAnimationTask(shootFrom, target, damageMult).runTaskTimer(plugin, 0L, 1L);
     }
 }

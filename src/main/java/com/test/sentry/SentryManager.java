@@ -7,6 +7,12 @@ import org.bukkit.Material;
 import org.bukkit.entity.EnderCrystal;
 import org.bukkit.entity.EntityType;
 
+import org.bukkit.block.TileState;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.NamespacedKey;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,16 +23,43 @@ import java.util.Set;
  */
 public final class SentryManager {
 
+    private final JavaPlugin plugin;
+    private final SentryConfig config;
+    private final NamespacedKey ownerKey, modeKey, rangeKey, rechargeKey, damageKey, buffKey, targetsKey;
+
     // Key: block location of the Conduit. Value: mutable sentry state.
     private final Map<Location, SentryData> sentries = new HashMap<>();
 
-    public void addSentry(Location coreLoc, String ownerName) {
+    public SentryManager(JavaPlugin plugin, SentryConfig config) {
+        this.plugin = plugin;
+        this.config = config;
+        this.ownerKey = new NamespacedKey(plugin, "sentry_owner");
+        this.modeKey = new NamespacedKey(plugin, "sentry_mode");
+        this.rangeKey = new NamespacedKey(plugin, "sentry_range");
+        this.rechargeKey = new NamespacedKey(plugin, "sentry_recharge");
+        this.damageKey = new NamespacedKey(plugin, "sentry_damage");
+        this.buffKey = new NamespacedKey(plugin, "sentry_buff");
+        this.targetsKey = new NamespacedKey(plugin, "sentry_targets");
+    }
+
+    public SentryConfig getConfig() {
+        return config;
+    }
+
+    public void addSentry(Location coreLoc, String ownerName, int rangeTier, int rechargeTier, int damageTier, int buffTier, int targetsTier) {
         Location loc = coreLoc.toBlockLocation();
         if (!sentries.containsKey(loc)) {
             SentryData data = new SentryData(ownerName);
+            data.setRangeTier(rangeTier);
+            data.setRechargeTier(rechargeTier);
+            data.setDamageTier(damageTier);
+            data.setBuffTier(buffTier);
+            data.setTargetsTier(targetsTier);
+            
             sentries.put(loc, data);
             // Sentry starts inactive, leaving the conduit as-is
             setSentryActiveState(loc, data, false);
+            saveToPDC(loc, data);
         }
     }
 
@@ -38,6 +71,20 @@ public final class SentryManager {
             setSentryActiveState(loc, data, false);
             // Also ensure the conduit block is removed if the whole thing is being destroyed
             loc.getBlock().setType(Material.AIR);
+            
+            // Clear PDC data from the underlying obsidian block
+            Location obsiLoc = loc.clone().subtract(0, 1, 0);
+            if (obsiLoc.getBlock().getState() instanceof TileState tile) {
+                PersistentDataContainer pdc = tile.getPersistentDataContainer();
+                pdc.remove(ownerKey);
+                pdc.remove(modeKey);
+                pdc.remove(rangeKey);
+                pdc.remove(rechargeKey);
+                pdc.remove(damageKey);
+                pdc.remove(buffKey);
+                pdc.remove(targetsKey);
+                tile.update();
+            }
         }
         sentries.remove(loc);
     }
@@ -94,5 +141,53 @@ public final class SentryManager {
             // Restore conduit block
             coreLoc.getBlock().setType(Material.CONDUIT);
         }
+        saveToPDC(coreLoc, data);
+    }
+
+    /**
+     * Saves SentryData to the PersistentDataContainer of the Obsidian block below the core.
+     */
+    public void saveToPDC(Location coreLoc, SentryData data) {
+        Location obsiLoc = coreLoc.clone().subtract(0, 1, 0);
+        if (obsiLoc.getBlock().getState() instanceof TileState tile) {
+            PersistentDataContainer pdc = tile.getPersistentDataContainer();
+            if (data.getOwnerName() != null) pdc.set(ownerKey, PersistentDataType.STRING, data.getOwnerName());
+            pdc.set(modeKey, PersistentDataType.STRING, data.getMode().name());
+            pdc.set(rangeKey, PersistentDataType.INTEGER, data.getRangeTier());
+            pdc.set(rechargeKey, PersistentDataType.INTEGER, data.getRechargeTier());
+            pdc.set(damageKey, PersistentDataType.INTEGER, data.getDamageTier());
+            pdc.set(buffKey, PersistentDataType.INTEGER, data.getBuffTier());
+            pdc.set(targetsKey, PersistentDataType.INTEGER, data.getTargetsTier());
+            tile.update();
+        }
+    }
+
+    /**
+     * Loads SentryData from the PersistentDataContainer of the Obsidian block below the core, if any.
+     */
+    public SentryData loadFromPDC(Location coreLoc) {
+        Location obsiLoc = coreLoc.clone().subtract(0, 1, 0);
+        if (obsiLoc.getBlock().getState() instanceof TileState tile) {
+            PersistentDataContainer pdc = tile.getPersistentDataContainer();
+            if (pdc.has(ownerKey, PersistentDataType.STRING)) {
+                String ownerName = pdc.get(ownerKey, PersistentDataType.STRING);
+                SentryData data = new SentryData(ownerName);
+                
+                if (pdc.has(modeKey, PersistentDataType.STRING)) {
+                    try {
+                        data.setMode(SentryMode.valueOf(pdc.get(modeKey, PersistentDataType.STRING)));
+                    } catch (IllegalArgumentException ignored) {}
+                }
+                
+                data.setRangeTier(pdc.getOrDefault(rangeKey, PersistentDataType.INTEGER, 0));
+                data.setRechargeTier(pdc.getOrDefault(rechargeKey, PersistentDataType.INTEGER, 0));
+                data.setDamageTier(pdc.getOrDefault(damageKey, PersistentDataType.INTEGER, 0));
+                data.setBuffTier(pdc.getOrDefault(buffKey, PersistentDataType.INTEGER, 0));
+                data.setTargetsTier(pdc.getOrDefault(targetsKey, PersistentDataType.INTEGER, 0));
+                
+                return data;
+            }
+        }
+        return null;
     }
 }

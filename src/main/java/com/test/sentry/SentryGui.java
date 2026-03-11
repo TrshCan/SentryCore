@@ -42,6 +42,7 @@ public final class SentryGui {
     // Titles encoded with the core location so the click handler can look up the sentry
     public static final String MAIN_GUI_TITLE_PREFIX = "§5Sentry Control";
     public static final String MODE_GUI_TITLE_PREFIX = "§5Sentry Mode";
+    public static final String UPGRADE_GUI_TITLE_PREFIX = "§5Sentry Upgrade";
 
     private static final TextColor ACTIVE_COLOR   = TextColor.fromHexString("#55FF55"); // green
     private static final TextColor INACTIVE_COLOR = TextColor.fromHexString("#FF5555"); // red
@@ -79,6 +80,9 @@ public final class SentryGui {
         // Slot 16 — Access Fuel (Hopper)
         inv.setItem(16, buildAccessFuelItem());
 
+        // Slot 22 — Upgrade Menu (Nether Star)
+        inv.setItem(22, buildUpgradeMenuItem(data));
+
         // Slot 31 — Pick Up Sentry (Barrier)
         inv.setItem(31, buildPickUpItem());
 
@@ -108,6 +112,40 @@ public final class SentryGui {
         inv.setItem(4, buildModeItem(SentryMode.PRISMARINE, data.getMode()));
         // Slot 6 — Echo Mode
         inv.setItem(6, buildModeItem(SentryMode.ECHO, data.getMode()));
+
+        player.openInventory(inv);
+    }
+
+    // ─────────────────────── Upgrade Sub-GUI ───────────────────────
+
+    public static void openUpgradeMenu(Player player, Location coreLoc, SentryData data, SentryConfig config) {
+        SentryGuiHolder holder = new SentryGuiHolder(coreLoc, SentryGuiHolder.GuiType.UPGRADE);
+        String ownerName = data.getOwnerName() != null ? data.getOwnerName() : "Unknown";
+        Inventory inv = Bukkit.createInventory(holder, 9, Component.text("§5" + ownerName + "'s Upgrades"));
+        holder.setInventory(inv);
+
+        ItemStack filler = buildFiller();
+        for (int i = 0; i < 9; i++) inv.setItem(i, filler);
+
+        // Slot 0 — Range (Bow)
+        inv.setItem(0, buildUpgradeStatItem("Range", Material.BOW, data.getRangeTier(),
+            config.getRangeBonus(data.getRangeTier()), config.getRangeBonus(data.getRangeTier() + 1), "Blocks", data, config));
+
+        // Slot 2 — Recharge Speed (Clock)
+        inv.setItem(2, buildUpgradeStatItem("Recharge Speed", Material.CLOCK, data.getRechargeTier(),
+            config.getRechargeReduction(data.getRechargeTier()), config.getRechargeReduction(data.getRechargeTier() + 1), "% Faster", data, config));
+
+        // Slot 4 — Damage (Diamond Sword)
+        inv.setItem(4, buildUpgradeStatItem("Damage", Material.DIAMOND_SWORD, data.getDamageTier(),
+            config.getDamageBonus(data.getDamageTier()), config.getDamageBonus(data.getDamageTier() + 1), "% Bonus", data, config));
+
+        // Slot 6 — Passive Buff (Beacon)
+        inv.setItem(6, buildUpgradeStatItem("Passive Buff", Material.BEACON, data.getBuffTier(),
+            config.getBuffAmplifier(data.getBuffTier()), config.getBuffAmplifier(data.getBuffTier() + 1), "Amplifier", data, config));
+
+        // Slot 8 — Targets (Crossbow)
+        inv.setItem(8, buildUpgradeStatItem("Multi-Target", Material.CROSSBOW, data.getTargetsTier(),
+            config.getTargetsBonus(data.getTargetsTier()), config.getTargetsBonus(data.getTargetsTier() + 1), "Targets", data, config));
 
         player.openInventory(inv);
     }
@@ -196,6 +234,51 @@ public final class SentryGui {
             Component.text("Click to open the Barrel's inventory"),
             Component.text("to add or remove fuel.")
         ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static ItemStack buildUpgradeMenuItem(SentryData data) {
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(
+            Component.text("⭐ Upgrades")
+                .color(GOLD_COLOR)
+                .decoration(TextDecoration.ITALIC, false)
+                .decoration(TextDecoration.BOLD, true)
+        );
+        meta.lore(List.of(
+            Component.text("Click to View/Purchase Upgrades").color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false),
+            Component.text("Total Tier: " + data.getTotalTier() + "/40").color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false)
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static ItemStack buildUpgradeStatItem(String statName, Material mat, int currentTier, int currentVal, int nextVal, String unit, SentryData data, SentryConfig config) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        boolean canUpgrade = data.getTotalTier() < config.getMaxTier();
+
+        meta.displayName(
+            Component.text(statName + " Upgrade").color(GOLD_COLOR)
+                .decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true)
+        );
+
+        List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.text("Tier: " + currentTier).color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Current: +" + currentVal + " " + unit).color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+        
+        if (canUpgrade) {
+            lore.add(Component.text("Next Tier: +" + nextVal + " " + unit).color(GOLD_COLOR).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(Component.text("► Click to Upgrade").color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+        } else {
+            lore.add(Component.empty());
+            lore.add(Component.text("Max Total Tier Reached (40)").color(INACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
+        }
+
+        meta.lore(lore);
         item.setItemMeta(meta);
         return item;
     }

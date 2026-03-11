@@ -5,6 +5,7 @@ import com.test.sentry.SentryCoreItem;
 import com.test.sentry.SentryGuiListener;
 import com.test.sentry.SentryListener;
 import com.test.sentry.SentryManager;
+import com.test.sentry.SentryConfig;
 import com.test.sentry.SentryTask;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -21,8 +22,12 @@ public class MyPlugin extends JavaPlugin {
         // Register custom recipe
         RecipeManager.register(this);
 
+        // Load configuration
+        saveDefaultConfig();
+        SentryConfig sentryConfig = new SentryConfig(getConfig());
+
         // Set up sentry tracking
-        sentryManager = new SentryManager();
+        sentryManager = new SentryManager(this, sentryConfig);
 
         // Register block place/break listener
         getServer().getPluginManager().registerEvents(new SentryListener(sentryManager), this);

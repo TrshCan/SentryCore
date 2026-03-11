@@ -131,14 +131,23 @@ public class SentryGuiListener implements Listener {
                     player.closeInventory();
                 }
             }
+            // Slot 22 — Upgrade Menu
+            else if (slot == 22) {
+                SentryGui.openUpgradeMenu(player, coreLoc, data, sentryManager.getConfig());
+            }
             // Slot 31 — Pick Up Sentry
             else if (slot == 31) {
                 // Remove the sentry cleanly from manager (this removes the crystal/conduit)
+                int r = data.getRangeTier();
+                int rc = data.getRechargeTier();
+                int d = data.getDamageTier();
+                int b = data.getBuffTier();
+                int t = data.getTargetsTier();
                 sentryManager.removeSentry(coreLoc);
                 player.closeInventory();
                 
                 // Drop the Sentry Core item on the ground
-                coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(data.getOwnerName()));
+                coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem(data.getOwnerName(), r, rc, d, b, t));
                 player.sendMessage(
                     net.kyori.adventure.text.Component.text("Sentry picked up.")
                         .color(net.kyori.adventure.text.format.TextColor.fromHexString("#AAAAAA"))
@@ -160,8 +169,44 @@ public class SentryGuiListener implements Listener {
             if (newMode == null) return;
 
             data.setMode(newMode);
+            sentryManager.saveToPDC(coreLoc, data);
             // Reopen mode selector so the green/red indicators refresh
             SentryGui.openModeSelector(player, coreLoc, data);
+        }
+
+        // ── Upgrade GUI ──
+        else if (holder.getType() == SentryGuiHolder.GuiType.UPGRADE) {
+            SentryConfig config = sentryManager.getConfig();
+            if (data.getTotalTier() >= config.getMaxTier()) {
+                player.sendMessage(net.kyori.adventure.text.Component.text("Max tier reached!").color(net.kyori.adventure.text.format.TextColor.fromHexString("#FF4444")));
+                return;
+            }
+
+            boolean upgraded = false;
+            if (slot == 0) {
+                data.setRangeTier(data.getRangeTier() + 1);
+                upgraded = true;
+            } else if (slot == 2) {
+                data.setRechargeTier(data.getRechargeTier() + 1);
+                upgraded = true;
+            } else if (slot == 4) {
+                data.setDamageTier(data.getDamageTier() + 1);
+                upgraded = true;
+            } else if (slot == 6) {
+                data.setBuffTier(data.getBuffTier() + 1);
+                upgraded = true;
+            } else if (slot == 8) {
+                data.setTargetsTier(data.getTargetsTier() + 1);
+                upgraded = true;
+            }
+
+            if (upgraded) {
+                // Save immediately to Block PDC
+                sentryManager.saveToPDC(coreLoc, data);
+                // Refresh the Upgrade GUI
+                SentryGui.openUpgradeMenu(player, coreLoc, data, config);
+                player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 2.0f);
+            }
         }
     }
 }

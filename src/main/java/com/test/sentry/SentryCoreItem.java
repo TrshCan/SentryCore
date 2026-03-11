@@ -17,10 +17,20 @@ public final class SentryCoreItem {
 
     private static NamespacedKey SENTRY_TYPE_KEY;
     private static NamespacedKey SENTRY_OWNER_KEY;
+    private static NamespacedKey SENTRY_RANGE_KEY;
+    private static NamespacedKey SENTRY_RECHARGE_KEY;
+    private static NamespacedKey SENTRY_DAMAGE_KEY;
+    private static NamespacedKey SENTRY_BUFF_KEY;
+    private static NamespacedKey SENTRY_TARGETS_KEY;
 
     public static void init(JavaPlugin plugin) {
         SENTRY_TYPE_KEY = new NamespacedKey(plugin, "sentry_type");
         SENTRY_OWNER_KEY = new NamespacedKey(plugin, "sentry_owner");
+        SENTRY_RANGE_KEY = new NamespacedKey(plugin, "sentry_range_tier");
+        SENTRY_RECHARGE_KEY = new NamespacedKey(plugin, "sentry_recharge_tier");
+        SENTRY_DAMAGE_KEY = new NamespacedKey(plugin, "sentry_damage_tier");
+        SENTRY_BUFF_KEY = new NamespacedKey(plugin, "sentry_buff_tier");
+        SENTRY_TARGETS_KEY = new NamespacedKey(plugin, "sentry_targets_tier");
     }
 
     public static NamespacedKey getSentryTypeKey() {
@@ -30,9 +40,9 @@ public final class SentryCoreItem {
     /**
      * Builds the Sentry Core item: a Conduit with a hidden enchantment glimmer,
      * a coloured display name, and a PDC tag identifying it as a sentry core.
-     * Optionally assigns an owner.
+     * Optionally assigns an owner and persists upgrade tier levels.
      */
-    public static ItemStack buildItem(String ownerName) {
+    public static ItemStack buildItem(String ownerName, int rangeTier, int rechargeTier, int damageTier, int buffTier, int targetsTier) {
         ItemStack item = new ItemStack(Material.CONDUIT, 1);
         ItemMeta meta = item.getItemMeta();
 
@@ -48,18 +58,31 @@ public final class SentryCoreItem {
         meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
 
-        // PDC tag: sentry_type = "core"
+        // PDC tags
         meta.getPersistentDataContainer().set(SENTRY_TYPE_KEY, PersistentDataType.STRING, "core");
+        meta.getPersistentDataContainer().set(SENTRY_RANGE_KEY, PersistentDataType.INTEGER, rangeTier);
+        meta.getPersistentDataContainer().set(SENTRY_RECHARGE_KEY, PersistentDataType.INTEGER, rechargeTier);
+        meta.getPersistentDataContainer().set(SENTRY_DAMAGE_KEY, PersistentDataType.INTEGER, damageTier);
+        meta.getPersistentDataContainer().set(SENTRY_BUFF_KEY, PersistentDataType.INTEGER, buffTier);
+        meta.getPersistentDataContainer().set(SENTRY_TARGETS_KEY, PersistentDataType.INTEGER, targetsTier);
+
+        java.util.List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.empty());
+        lore.add(Component.text("Range Tier: " + rangeTier).color(TextColor.fromHexString("#AAAAAA")).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Recharge Speed Tier: " + rechargeTier).color(TextColor.fromHexString("#AAAAAA")).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Damage Tier: " + damageTier).color(TextColor.fromHexString("#AAAAAA")).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Passive Buff Tier: " + buffTier).color(TextColor.fromHexString("#AAAAAA")).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("Multi-Target Tier: " + targetsTier).color(TextColor.fromHexString("#AAAAAA")).decoration(TextDecoration.ITALIC, false));
 
         if (ownerName != null) {
             meta.getPersistentDataContainer().set(SENTRY_OWNER_KEY, PersistentDataType.STRING, ownerName);
-            meta.lore(java.util.List.of(
-                Component.empty(),
-                Component.text("Owner: " + ownerName)
-                    .color(TextColor.fromHexString("#AAAAAA"))
-                    .decoration(TextDecoration.ITALIC, false)
-            ));
+            lore.add(Component.empty());
+            lore.add(Component.text("Owner: " + ownerName)
+                .color(TextColor.fromHexString("#FFFF55"))
+                .decoration(TextDecoration.ITALIC, false));
         }
+        
+        meta.lore(lore);
 
         item.setItemMeta(meta);
         return item;
@@ -73,6 +96,31 @@ public final class SentryCoreItem {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return null;
         return meta.getPersistentDataContainer().get(SENTRY_OWNER_KEY, PersistentDataType.STRING);
+    }
+
+    public static int getRangeTier(ItemStack item) {
+        if (!isSentryCore(item) || item.getItemMeta() == null) return 0;
+        return item.getItemMeta().getPersistentDataContainer().getOrDefault(SENTRY_RANGE_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    public static int getRechargeTier(ItemStack item) {
+        if (!isSentryCore(item) || item.getItemMeta() == null) return 0;
+        return item.getItemMeta().getPersistentDataContainer().getOrDefault(SENTRY_RECHARGE_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    public static int getDamageTier(ItemStack item) {
+        if (!isSentryCore(item) || item.getItemMeta() == null) return 0;
+        return item.getItemMeta().getPersistentDataContainer().getOrDefault(SENTRY_DAMAGE_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    public static int getBuffTier(ItemStack item) {
+        if (!isSentryCore(item) || item.getItemMeta() == null) return 0;
+        return item.getItemMeta().getPersistentDataContainer().getOrDefault(SENTRY_BUFF_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    public static int getTargetsTier(ItemStack item) {
+        if (!isSentryCore(item) || item.getItemMeta() == null) return 0;
+        return item.getItemMeta().getPersistentDataContainer().getOrDefault(SENTRY_TARGETS_KEY, PersistentDataType.INTEGER, 0);
     }
 
     /**

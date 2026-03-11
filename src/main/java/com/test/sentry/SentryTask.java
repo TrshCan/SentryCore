@@ -68,22 +68,47 @@ public class SentryTask extends BukkitRunnable {
         }
 
         SentryMode mode = data.getMode();
+        SentryConfig config = sentryManager.getConfig();
 
-        // Only fire when this mode's tick interval aligns
-        if (tickCount % mode.getTickInterval() != 0) return;
+        // 1. Recharge Speed modifier from Upgrade Tier
+        int rechargeReductionPercent = config.getRechargeReduction(data.getRechargeTier());
+        double reductionFactor = 1.0 - (rechargeReductionPercent / 100.0);
+        int realTickInterval = Math.max(1, (int) Math.round(mode.getTickInterval() * reductionFactor));
+
+        // Only fire when this mode's modified tick interval aligns
+        if (tickCount % realTickInterval != 0) return;
+
+        // Apply Passive Buff (Beacon) if tier > 0
+        int buffAmplifier = config.getBuffAmplifier(data.getBuffTier());
+        if (data.getBuffTier() > 0) {
+            applyPassiveBuff(coreLoc, buffAmplifier);
+        }
 
         // Scan the full chest inventory for the required fuel material
         Inventory inventory = container.getInventory();
         int fuelSlot = findFuelSlot(inventory, mode.getFuelMaterial());
         if (fuelSlot == -1) return; // no fuel of this type
 
-        Monster target = findNearestMonster(coreLoc, 20);
-        if (target == null) return;
+        // 2. Range modifier from Upgrade Tier
+        double baseRange = 20.0;
+        double realRange = baseRange + config.getRangeBonus(data.getRangeTier());
 
-        switch (mode) {
-            case AMETHYST  -> fireAmethyst(coreLoc, target);
-            case PRISMARINE -> firePrismarine(coreLoc, target);
-            case ECHO      -> fireEcho(coreLoc, target);
+        // 4. Targets modifier from Upgrade Tier
+        int maxTargets = 1 + config.getTargetsBonus(data.getTargetsTier());
+
+        java.util.List<Monster> targets = findNearestMonsters(coreLoc, realRange, maxTargets);
+        if (targets.isEmpty()) return;
+
+        // 3. Damage modifier from Upgrade Tier
+        int damageBonusPercent = config.getDamageBonus(data.getDamageTier());
+        double damageMultiplier = 1.0 + (damageBonusPercent / 100.0);
+
+        for (Monster target : targets) {
+            switch (mode) {
+                case AMETHYST  -> fireAmethyst(coreLoc, target, damageMultiplier);
+                case PRISMARINE -> firePrismarine(coreLoc, target, damageMultiplier);
+                case ECHO      -> fireEcho(coreLoc, target, damageMultiplier);
+            }
         }
         removeOneFuel(inventory, fuelSlot);
     }
@@ -104,7 +129,7 @@ public class SentryTask extends BukkitRunnable {
 
     // ─────────────────── Mode A — Amethyst Shard ───────────────────
 
-    private void fireAmethyst(Location coreLoc, Monster target) {
+    private void fireAmethyst(Location coreLoc, Monster target, double damageMult) {
         Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
         Location targetEye = target.getEyeLocation();
 
@@ -120,8 +145,8 @@ public class SentryTask extends BukkitRunnable {
         arrow.setDamage(0.0);
         arrow.setSilent(true);
 
-        // Explicit 3.0 damage (so they actually take damage) and Glowing (3 seconds = 60 ticks)
-        target.damage(3.0);
+        // Explicit base 3.0 damage multiplied by Upgrade Tier and Glowing (3 seconds = 60 ticks)
+        target.damage(3.0 * damageMult);
         target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 60, 0, false, false));
 
         // Sound & particle at core
@@ -131,14 +156,14 @@ public class SentryTask extends BukkitRunnable {
 
     // ─────────────────── Mode B — Prismarine Shard ───────────────────
 
-    private void firePrismarine(Location coreLoc, Monster target) {
+    private void firePrismarine(Location coreLoc, Monster target, double damageMult) {
         // Delegate to the 20-tick tracking animation task
-        SentryAnimationTask.startPrismarineLaser(plugin, coreLoc, target);
+        SentryAnimationTask.startPrismarineLaser(plugin, coreLoc, target, damageMult);
     }
 
     // ─────────────────── Mode C — Echo Shard ───────────────────
 
-    private void fireEcho(Location coreLoc, Monster target) {
+    private void fireEcho(Location coreLoc, Monster target, double damageMult) {
         Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
         Location targetEye = target.getEyeLocation();
 
@@ -146,7 +171,7 @@ public class SentryTask extends BukkitRunnable {
         drawParticleLine(shootFrom, targetEye, Particle.SONIC_BOOM, 1.0);
         target.getWorld().spawnParticle(Particle.SONIC_BOOM, targetEye, 1, 0, 0, 0, 0);
 
-        target.damage(25.0);
+        target.damage(25.0 * damageMult);
 
         coreLoc.getWorld().playSound(coreLoc, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 1.0f);
     }
@@ -154,14 +179,15 @@ public class SentryTask extends BukkitRunnable {
     // ─────────────────── Helpers ───────────────────
 
     /**
-     * Finds the nearest Monster entity within {@code radius} blocks of {@code origin}.
+     * Finds up to {@code maxTargets} Monster entities within {@code radius} blocks of {@code origin}, sorted by distance.
      */
-    private Monster findNearestMonster(Location origin, double radius) {
+    private java.util.List<Monster> findNearestMonsters(Location origin, double radius, int maxTargets) {
         Collection<Monster> nearby = origin.getWorld().getNearbyEntitiesByType(
                 Monster.class, origin, radius);
-        Optional<Monster> nearest = nearby.stream()
-                .min(Comparator.comparingDouble(m -> m.getLocation().distanceSquared(origin)));
-        return nearest.orElse(null);
+        return nearby.stream()
+                .sorted(Comparator.comparingDouble(m -> m.getLocation().distanceSquared(origin)))
+                .limit(maxTargets)
+                .toList();
     }
 
     /**
@@ -188,6 +214,21 @@ public class SentryTask extends BukkitRunnable {
             inventory.setItem(slot, null);
         } else {
             item.setAmount(item.getAmount() - 1);
+        }
+    }
+
+    /**
+     * Applies a passive buff (Resistance and Regeneration) to players near the Sentry.
+     * The effect strength corresponds to the buff tier amplifier.
+     */
+    private void applyPassiveBuff(Location coreLoc, int amplifier) {
+        Collection<org.bukkit.entity.Player> players = coreLoc.getWorld().getNearbyEntitiesByType(
+            org.bukkit.entity.Player.class, coreLoc, 15.0); // beacon range is roughly 15-20 blocks for tier 1
+
+        for (org.bukkit.entity.Player p : players) {
+            // Re-apply effect every few ticks so it doesn't run out while they're nearby
+            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, amplifier, true, false));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, amplifier, true, false));
         }
     }
 }

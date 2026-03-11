@@ -19,7 +19,7 @@ public final class RecipeManager {
      */
     public static void register(JavaPlugin plugin) {
         NamespacedKey key = new NamespacedKey(plugin, "sentry_core");
-        ShapedRecipe recipe = new ShapedRecipe(key, SentryCoreItem.buildItem(null));
+        ShapedRecipe recipe = new ShapedRecipe(key, SentryCoreItem.buildItem(null, 0, 0, 0, 0, 0));
 
         recipe.shape("OOO", "ONO", "OOO");
         recipe.setIngredient('O', Material.OBSIDIAN);
