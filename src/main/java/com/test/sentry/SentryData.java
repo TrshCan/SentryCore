@@ -12,7 +12,7 @@ public class SentryData {
     private UUID crystalUuid;
 
     public SentryData() {
-        this.active = true;                  // starts active on placement
+        this.active = false;                 // starts INACTIVE on placement
         this.mode = SentryMode.AMETHYST;     // default mode
     }
 

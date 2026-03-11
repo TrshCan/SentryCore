@@ -110,7 +110,7 @@ public class SentryGuiListener implements Listener {
 
             // Slot 10 — Toggle
             if (slot == 10) {
-                data.setActive(!data.isActive());
+                sentryManager.setSentryActiveState(coreLoc, data, !data.isActive());
                 // Refresh the GUI
                 SentryGui.openMain(player, coreLoc, data);
             }

@@ -25,8 +25,8 @@ public final class SentryManager {
         if (!sentries.containsKey(loc)) {
             SentryData data = new SentryData();
             sentries.put(loc, data);
-            // Sentry starts active, so immediately swap to crystal
-            setSentryActiveState(loc, data, true);
+            // Sentry starts inactive, leaving the conduit as-is
+            setSentryActiveState(loc, data, false);
         }
     }
 

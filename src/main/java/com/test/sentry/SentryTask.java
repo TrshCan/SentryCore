@@ -53,8 +53,9 @@ public class SentryTask extends BukkitRunnable {
 
         Block coreBlock = coreLoc.getBlock();
 
-        // Validate core is still a Conduit
-        if (coreBlock.getType() != Material.CONDUIT) {
+        // When a sentry is active, the CONDUIT block is replaced by AIR (and an EnderCrystal entity)
+        // If a player somehow places a block here, the sentry breaks.
+        if (coreBlock.getType() != Material.AIR) {
             sentryManager.removeSentry(coreLoc);
             return;
         }

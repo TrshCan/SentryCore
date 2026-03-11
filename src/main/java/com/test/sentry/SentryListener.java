@@ -33,7 +33,7 @@ public class SentryListener implements Listener {
         if (StructureChecker.isValidStructure(placed)) {
             sentryManager.addSentry(placed.getLocation());
             event.getPlayer().sendMessage(
-                Component.text("✔ Sentry Core activated!")
+                Component.text("✔ Sentry Core placed! Shift+Right-Click to activate.")
                     .color(TextColor.fromHexString("#AA00FF"))
             );
         } else {
@@ -57,7 +57,7 @@ public class SentryListener implements Listener {
         // 2. If the barrel 2 blocks beneath a sentry is broken
         if (broken.getType() == Material.BARREL) {
             Block coreAbove = broken.getRelative(0, 2, 0);
-            if (coreAbove.getType() == Material.CONDUIT && sentryManager.isSentry(coreAbove.getLocation())) {
+            if (sentryManager.isSentry(coreAbove.getLocation())) {
                 sentryManager.removeSentry(coreAbove.getLocation());
                 return;
             }
@@ -67,7 +67,7 @@ public class SentryListener implements Listener {
         if (broken.getType() == Material.OBSIDIAN) {
             // Case A: Is it the obsidian block directly beneath the core?
             Block coreAbove = broken.getRelative(BlockFace.UP);
-            if (coreAbove.getType() == Material.CONDUIT && sentryManager.isSentry(coreAbove.getLocation())) {
+            if (sentryManager.isSentry(coreAbove.getLocation())) {
                 sentryManager.removeSentry(coreAbove.getLocation());
                 return;
             }
@@ -77,8 +77,7 @@ public class SentryListener implements Listener {
             Set<Block> candidateBarrels = getNeighboringContainers(broken, Material.BARREL);
             for (Block barrel : candidateBarrels) {
                 Block potentialCore = barrel.getRelative(0, 2, 0);
-                if (potentialCore.getType() == Material.CONDUIT
-                        && sentryManager.isSentry(potentialCore.getLocation())) {
+                if (sentryManager.isSentry(potentialCore.getLocation())) {
                     // Frame is now broken
                     if (!StructureChecker.isObsidianFrame(barrel)) {
                         sentryManager.removeSentry(potentialCore.getLocation());
