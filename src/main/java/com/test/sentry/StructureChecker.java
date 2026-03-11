@@ -11,19 +11,24 @@ public final class StructureChecker {
      * Validates that a placed Conduit block forms a valid Sentry structure.
      *
      * Requirements:
-     *  1. The block directly below the core must be a CHEST.
-     *  2. The 8 blocks surrounding the chest (same Y level) must all be OBSIDIAN.
+     *  1. The block directly below the core must be OBSIDIAN.
+     *  2. The block below that must be a BARREL.
+     *  3. The 8 blocks surrounding the BARREL (same Y level) must all be OBSIDIAN.
      *
      *   O O O
-     *   O C O   ← chest level (C = chest, O = obsidian)
+     *   O B O   ← level Y-2 (B = barrel, O = obsidian)
      *   O O O
-     *       ↑ core is on top of C
+     *     O     ← level Y-1 (obsidian)
+     *     C     ← level Y (conduit/core)
      */
     public static boolean isValidStructure(Block coreBlock) {
-        Block chestBlock = coreBlock.getRelative(BlockFace.DOWN);
-        if (chestBlock.getType() != Material.CHEST) return false;
+        Block below = coreBlock.getRelative(BlockFace.DOWN);
+        if (below.getType() != Material.OBSIDIAN) return false;
 
-        return isObsidianFrame(chestBlock);
+        Block barrelBlock = below.getRelative(BlockFace.DOWN);
+        if (barrelBlock.getType() != Material.BARREL) return false;
+
+        return isObsidianFrame(barrelBlock);
     }
 
     /**
@@ -43,11 +48,12 @@ public final class StructureChecker {
     }
 
     /**
-     * Returns the chest block beneath the given core block, or null if absent.
+     * Returns the barrel block beneath the given core block, or null if absent.
+     * The barrel should be 2 blocks below the core.
      */
-    public static Block getChestBlock(Block coreBlock) {
-        Block below = coreBlock.getRelative(BlockFace.DOWN);
-        return below.getType() == Material.CHEST ? below : null;
+    public static Block getFuelContainer(Block coreBlock) {
+        Block belowTwo = coreBlock.getRelative(0, -2, 0);
+        return belowTwo.getType() == Material.BARREL ? belowTwo : null;
     }
 
     /**

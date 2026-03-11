@@ -31,7 +31,7 @@ public class MyPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SentryGuiListener(sentryManager), this);
 
         // Start the repeating sentry task (runs every 10 ticks)
-        sentryTask = new SentryTask(sentryManager);
+        sentryTask = new SentryTask(this, sentryManager);
         sentryTask.runTaskTimer(this, 10L, 10L);
 
         getLogger().info("SentryCore enabled — Sentry task running.");

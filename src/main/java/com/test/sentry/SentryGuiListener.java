@@ -12,6 +12,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
+import org.bukkit.entity.EnderCrystal;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class SentryGuiListener implements Listener {
@@ -43,6 +47,42 @@ public class SentryGuiListener implements Listener {
         event.setCancelled(true);
         SentryData data = sentryManager.getData(coreLoc);
         SentryGui.openMain(player, coreLoc, data);
+    }
+
+    // ─────────────── Open GUI on Shift + Right-Click End Crystal ───────────────
+
+    @EventHandler
+    public void onInteractEntity(PlayerInteractEntityEvent event) {
+        Player player = event.getPlayer();
+        if (!player.isSneaking()) return;
+
+        Entity entity = event.getRightClicked();
+        if (!(entity instanceof EnderCrystal crystal)) return;
+
+        // Check if this crystal belongs to any active sentry
+        for (Location coreLoc : sentryManager.getActiveSentries()) {
+            SentryData data = sentryManager.getData(coreLoc);
+            if (data != null && crystal.getUniqueId().equals(data.getCrystalUuid())) {
+                event.setCancelled(true);
+                SentryGui.openMain(player, coreLoc, data);
+                return;
+            }
+        }
+    }
+
+    // ─────────────── Protect End Crystal from Damage ───────────────
+
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof EnderCrystal crystal)) return;
+
+        for (Location coreLoc : sentryManager.getActiveSentries()) {
+            SentryData data = sentryManager.getData(coreLoc);
+            if (data != null && crystal.getUniqueId().equals(data.getCrystalUuid())) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 
     // ─────────────── Handle Clicks Inside GUIs ───────────────
@@ -77,6 +117,32 @@ public class SentryGuiListener implements Listener {
             // Slot 13 — Open mode selector
             else if (slot == 13) {
                 SentryGui.openModeSelector(player, coreLoc, data);
+            }
+            // Slot 16 — Access Fuel Storage
+            else if (slot == 16) {
+                Block barrelBlock = coreLoc.clone().subtract(0, 2, 0).getBlock();
+                if (barrelBlock.getState() instanceof org.bukkit.block.Container container) {
+                    player.openInventory(container.getInventory());
+                } else {
+                    player.sendMessage(
+                        net.kyori.adventure.text.Component.text("✘ Could not find the Barrel.")
+                            .color(net.kyori.adventure.text.format.TextColor.fromHexString("#FF4444"))
+                    );
+                    player.closeInventory();
+                }
+            }
+            // Slot 31 — Pick Up Sentry
+            else if (slot == 31) {
+                // Remove the sentry cleanly from manager (this removes the crystal/conduit)
+                sentryManager.removeSentry(coreLoc);
+                player.closeInventory();
+                
+                // Drop the Sentry Core item on the ground
+                coreLoc.getWorld().dropItemNaturally(coreLoc, SentryCoreItem.buildItem());
+                player.sendMessage(
+                    net.kyori.adventure.text.Component.text("Sentry picked up.")
+                        .color(net.kyori.adventure.text.format.TextColor.fromHexString("#AAAAAA"))
+                );
             }
         }
 

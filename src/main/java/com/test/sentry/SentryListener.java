@@ -38,7 +38,7 @@ public class SentryListener implements Listener {
             );
         } else {
             event.getPlayer().sendMessage(
-                Component.text("✘ Invalid structure! Place the Sentry Core on a Chest surrounded by Obsidian.")
+                Component.text("✘ Invalid structure! Place on Obsidian above a Barrel surrounded by Obsidian.")
                     .color(TextColor.fromHexString("#FF4444"))
             );
         }
@@ -54,26 +54,33 @@ public class SentryListener implements Listener {
             return;
         }
 
-        // 2. If the chest beneath a sentry is broken, invalidate the sentry above
-        if (broken.getType() == Material.CHEST) {
-            Block above = broken.getRelative(BlockFace.UP);
-            if (above.getType() == Material.CONDUIT && sentryManager.isSentry(above.getLocation())) {
-                sentryManager.removeSentry(above.getLocation());
+        // 2. If the barrel 2 blocks beneath a sentry is broken
+        if (broken.getType() == Material.BARREL) {
+            Block coreAbove = broken.getRelative(0, 2, 0);
+            if (coreAbove.getType() == Material.CONDUIT && sentryManager.isSentry(coreAbove.getLocation())) {
+                sentryManager.removeSentry(coreAbove.getLocation());
                 return;
             }
         }
 
-        // 3. If an Obsidian frame block is broken — check surrounding sentries
+        // 3. If Obsidian is broken (could be the block under the core, or the frame around the barrel)
         if (broken.getType() == Material.OBSIDIAN) {
-            // The chest, if part of a sentry, would be at broken.relative(0,0,0) neighbors.
-            // We check all 8 possible "center chest" positions around this obsidian block.
-            Set<Block> candidateChests = getNeighboringChests(broken);
-            for (Block chest : candidateChests) {
-                Block potentialCore = chest.getRelative(BlockFace.UP);
+            // Case A: Is it the obsidian block directly beneath the core?
+            Block coreAbove = broken.getRelative(BlockFace.UP);
+            if (coreAbove.getType() == Material.CONDUIT && sentryManager.isSentry(coreAbove.getLocation())) {
+                sentryManager.removeSentry(coreAbove.getLocation());
+                return;
+            }
+
+            // Case B: Is it one of the 8 frame blocks surrounding a barrel?
+            // The barrel would be adjacent to this broken block at the same Y level.
+            Set<Block> candidateBarrels = getNeighboringContainers(broken, Material.BARREL);
+            for (Block barrel : candidateBarrels) {
+                Block potentialCore = barrel.getRelative(0, 2, 0);
                 if (potentialCore.getType() == Material.CONDUIT
                         && sentryManager.isSentry(potentialCore.getLocation())) {
-                    // Verify the frame is still intact (it won't be, since we're breaking one)
-                    if (!StructureChecker.isObsidianFrame(chest)) {
+                    // Frame is now broken
+                    if (!StructureChecker.isObsidianFrame(barrel)) {
                         sentryManager.removeSentry(potentialCore.getLocation());
                     }
                 }
@@ -82,9 +89,9 @@ public class SentryListener implements Listener {
     }
 
     /**
-     * Returns all CHEST blocks that are adjacent (within 1 block on the same Y) to the given block.
+     * Returns all blocks of the specified material that are adjacent (within 1 block on the same Y) to the given block.
      */
-    private Set<Block> getNeighboringChests(Block block) {
+    private Set<Block> getNeighboringContainers(Block block, Material containerType) {
         Set<Block> result = new HashSet<>();
         int[][] offsets = {
             {-1, 0, -1}, {0, 0, -1}, {1, 0, -1},
@@ -93,7 +100,7 @@ public class SentryListener implements Listener {
         };
         for (int[] off : offsets) {
             Block candidate = block.getRelative(off[0], off[1], off[2]);
-            if (candidate.getType() == Material.CHEST) {
+            if (candidate.getType() == containerType) {
                 result.add(candidate);
             }
         }

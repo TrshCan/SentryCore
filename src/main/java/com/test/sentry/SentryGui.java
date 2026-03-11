@@ -16,15 +16,18 @@ import java.util.List;
 /**
  * Builds and opens the Sentry control GUI panels.
  *
- * Main GUI (9×3):
+ * Main GUI (9×4):
  *   ┌─────────────────────────────────────────┐
  *   │ G  G  G  G  G  G  G  G  G              row 0
- *   │ G  ⬜ G  ◉  G  G  G  G  G              row 1  (⬜=toggle, ◉=mode)
+ *   │ G  ⬜ G  ◉  G  G  ⬇  G  G              row 1  (⬜=toggle, ◉=mode, ⬇=fuel)
  *   │ G  G  G  G  G  G  G  G  G              row 2
+ *   │ G  G  G  G  ❌ G  G  G  G              row 3  (❌=pick up)
  *   └─────────────────────────────────────────┘
  *   G = Gray Glass Pane (filler)
  *   Slot 10 = ON/OFF toggle (Lime or Gray Dye)
  *   Slot 13 = Mode selector (Comparator)
+ *   Slot 16 = Access Fuel (Hopper)
+ *   Slot 31 = Pick Up (Barrier)
  *
  * Mode GUI (9×1):
  *   ┌──────────────────────────────────────────┐
@@ -58,11 +61,11 @@ public final class SentryGui {
     public static void openMain(Player player, Location coreLoc, SentryData data) {
         // Title encodes the sentry location so the listener can identify which sentry was clicked
         String title = buildMainTitle(coreLoc);
-        Inventory inv = Bukkit.createInventory(null, 27, Component.text(title));
+        Inventory inv = Bukkit.createInventory(null, 36, Component.text(title));
 
         // Fill with gray glass panes
         ItemStack filler = buildFiller();
-        for (int i = 0; i < 27; i++) {
+        for (int i = 0; i < 36; i++) {
             inv.setItem(i, filler);
         }
 
@@ -71,6 +74,12 @@ public final class SentryGui {
 
         // Slot 13 — Mode selector (Comparator)
         inv.setItem(13, buildModeSelectorItem(data.getMode()));
+
+        // Slot 16 — Access Fuel (Hopper)
+        inv.setItem(16, buildAccessFuelItem());
+
+        // Slot 31 — Pick Up Sentry (Barrier)
+        inv.setItem(31, buildPickUpItem());
 
         player.openInventory(inv);
     }
@@ -166,6 +175,40 @@ public final class SentryGui {
             Component.text("Fires every " + mode.getTickInterval() + " ticks")
                 .color(GRAY_COLOR)
                 .decoration(TextDecoration.ITALIC, false)
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static ItemStack buildAccessFuelItem() {
+        ItemStack item = new ItemStack(Material.HOPPER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(
+            Component.text("⬇ Access Fuel Storage")
+                .color(GOLD_COLOR)
+                .decoration(TextDecoration.ITALIC, false)
+                .decoration(TextDecoration.BOLD, true)
+        );
+        meta.lore(List.of(
+            Component.text("Click to open the Barrel's inventory"),
+            Component.text("to add or remove fuel.")
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static ItemStack buildPickUpItem() {
+        ItemStack item = new ItemStack(Material.BARRIER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(
+            Component.text("❌ Pick Up Sentry")
+                .color(INACTIVE_COLOR)
+                .decoration(TextDecoration.ITALIC, false)
+                .decoration(TextDecoration.BOLD, true)
+        );
+        meta.lore(List.of(
+            Component.text("Safely deactivates and removes the sentry,"),
+            Component.text("dropping the Sentry Core on the ground.")
         ));
         item.setItemMeta(meta);
         return item;

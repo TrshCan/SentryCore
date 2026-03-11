@@ -5,7 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
+
 import org.bukkit.block.Container;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Monster;
@@ -16,6 +16,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -24,10 +25,12 @@ import java.util.Set;
 
 public class SentryTask extends BukkitRunnable {
 
+    private final JavaPlugin plugin;
     private final SentryManager sentryManager;
     private long tickCount = 0;
 
-    public SentryTask(SentryManager sentryManager) {
+    public SentryTask(JavaPlugin plugin, SentryManager sentryManager) {
+        this.plugin = plugin;
         this.sentryManager = sentryManager;
     }
 
@@ -56,9 +59,9 @@ public class SentryTask extends BukkitRunnable {
             return;
         }
 
-        // Validate chest is still present and accessible
-        Block chestBlock = coreBlock.getRelative(BlockFace.DOWN);
-        if (!(chestBlock.getState() instanceof Container container)) {
+        // Validate barrel is still present and accessible (2 blocks down)
+        Block barrelBlock = coreBlock.getRelative(0, -2, 0);
+        if (!(barrelBlock.getState() instanceof Container container)) {
             sentryManager.removeSentry(coreLoc);
             return;
         }
@@ -112,10 +115,12 @@ public class SentryTask extends BukkitRunnable {
         arrow.setVelocity(direction.multiply(1.5));
         arrow.setInvisible(true);
         arrow.setPickupStatus(Arrow.PickupStatus.DISALLOWED);
-        arrow.setDamage(3.0);
+        // Arrow damage handles knockback, but explicit damage is dealt immediately
+        arrow.setDamage(0.0);
         arrow.setSilent(true);
 
-        // Glowing effect on mob (3 seconds = 60 ticks)
+        // Explicit 3.0 damage (so they actually take damage) and Glowing (3 seconds = 60 ticks)
+        target.damage(3.0);
         target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 60, 0, false, false));
 
         // Sound & particle at core
@@ -126,17 +131,8 @@ public class SentryTask extends BukkitRunnable {
     // ─────────────────── Mode B — Prismarine Shard ───────────────────
 
     private void firePrismarine(Location coreLoc, Monster target) {
-        Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
-        Location targetEye = target.getEyeLocation();
-
-        // Draw Guardian-laser-style particle line from core to mob
-        drawParticleLine(shootFrom, targetEye, Particle.BUBBLE, 0.4);
-
-        // Damage and Slowness II (5 seconds = 100 ticks)
-        target.damage(10.0);
-        target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 1, false, false));
-
-        coreLoc.getWorld().playSound(coreLoc, Sound.ENTITY_GUARDIAN_ATTACK, 1.0f, 1.0f);
+        // Delegate to the 20-tick tracking animation task
+        SentryAnimationTask.startPrismarineLaser(plugin, coreLoc, target);
     }
 
     // ─────────────────── Mode C — Echo Shard ───────────────────
@@ -145,8 +141,8 @@ public class SentryTask extends BukkitRunnable {
         Location shootFrom = coreLoc.clone().add(0.5, 0.5, 0.5);
         Location targetEye = target.getEyeLocation();
 
-        // Soul particle line from core to mob + sonic boom at mob
-        drawParticleLine(shootFrom, targetEye, Particle.SOUL, 0.5);
+        // Sonic boom particle line + burst at mob
+        drawParticleLine(shootFrom, targetEye, Particle.SONIC_BOOM, 1.0);
         target.getWorld().spawnParticle(Particle.SONIC_BOOM, targetEye, 1, 0, 0, 0, 0);
 
         target.damage(25.0);
