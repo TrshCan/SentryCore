@@ -116,6 +116,9 @@ public final class SentryGui {
         // Slot 6 — Echo Mode
         inv.setItem(6, buildModeItem(SentryMode.ECHO, data.getMode()));
 
+        // Return to main menu
+        inv.setItem(8, buildReturnMenuItem());
+
         player.openInventory(inv);
     }
 
@@ -124,11 +127,11 @@ public final class SentryGui {
     public static void openUpgradeMenu(Player player, Location coreLoc, SentryData data, SentryConfig config) {
         SentryGuiHolder holder = new SentryGuiHolder(coreLoc, SentryGuiHolder.GuiType.UPGRADE);
         String ownerName = data.getOwnerName() != null ? data.getOwnerName() : "Unknown";
-        Inventory inv = Bukkit.createInventory(holder, 9, Component.text("§5" + ownerName + "'s Upgrades"));
+        Inventory inv = Bukkit.createInventory(holder, 18, Component.text("§5" + ownerName + "'s Upgrades"));
         holder.setInventory(inv);
 
         ItemStack filler = buildFiller();
-        for (int i = 0; i < 9; i++) inv.setItem(i, filler);
+        for (int i = 0; i < 18; i++) inv.setItem(i, filler);
 
         // Slot 0 — Range (Bow)
         inv.setItem(0, buildUpgradeStatItem("Range", Material.BOW, data.getRangeTier(),
@@ -149,6 +152,9 @@ public final class SentryGui {
         // Slot 8 — Targets (Crossbow)
         inv.setItem(8, buildUpgradeStatItem("Multi-Target", Material.CROSSBOW, data.getTargetsTier(),
             config.getTargetsBonus(data.getTargetsTier()), config.getTargetsBonus(data.getTargetsTier() + 1), "Targets", data, config));
+
+        // Return to main menu
+        inv.setItem(17, buildReturnMenuItem());
 
         player.openInventory(inv);
     }
@@ -273,7 +279,10 @@ public final class SentryGui {
         lore.add(Component.text("Current: +" + currentVal + " " + unit).color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
         
         if (canUpgrade) {
+            int cost = config.getUpgradeCost(currentTier + 1);
             lore.add(Component.text("Next Tier: +" + nextVal + " " + unit).color(GOLD_COLOR).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(Component.text("Cost: " + cost + " Condensed Obsidian").color(TextColor.fromHexString("#D455FF")).decoration(TextDecoration.ITALIC, false));
             lore.add(Component.empty());
             lore.add(Component.text("► Click to Upgrade").color(ACTIVE_COLOR).decoration(TextDecoration.ITALIC, false));
         } else {
@@ -325,6 +334,19 @@ public final class SentryGui {
         return item;
     }
 
+    private static ItemStack buildReturnMenuItem() {
+        ItemStack item = new ItemStack(Material.ARROW, 1);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text("← Return").color(GOLD_COLOR).decoration(TextDecoration.ITALIC, false).decorate(TextDecoration.BOLD));
+            java.util.List<Component> lore = new java.util.ArrayList<>();
+            lore.add(Component.text("Click to return to Main Menu").color(GRAY_COLOR).decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     /**
      * Opens the Target List configuration GUI for a player.
      */
@@ -369,6 +391,8 @@ public final class SentryGui {
             }
             inv.setItem(slot++, item);
         }
+
+        inv.setItem(53, buildReturnMenuItem());
 
         player.openInventory(inv);
     }

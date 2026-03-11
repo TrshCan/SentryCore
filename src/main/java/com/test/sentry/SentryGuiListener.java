@@ -162,7 +162,10 @@ public class SentryGuiListener implements Listener {
 
         // ── Mode Selector GUI ──
         else if (holder.getType() == SentryGuiHolder.GuiType.MODE) {
-
+            if (slot == 8) {
+                SentryGui.openMain(player, coreLoc, data);
+                return;
+            }
 
             SentryMode newMode = switch (slot) {
                 case 2 -> SentryMode.AMETHYST;
@@ -182,9 +185,56 @@ public class SentryGuiListener implements Listener {
         // ── Upgrade GUI ──
         else if (holder.getType() == SentryGuiHolder.GuiType.UPGRADE) {
             SentryConfig config = sentryManager.getConfig();
+
+            if (slot == 17) {
+                SentryGui.openMain(player, coreLoc, data);
+                return;
+            }
+
             if (data.getTotalTier() >= config.getMaxTier()) {
                 player.sendMessage(net.kyori.adventure.text.Component.text("Max tier reached!").color(net.kyori.adventure.text.format.TextColor.fromHexString("#FF4444")));
                 return;
+            }
+
+            int currentTier = 0;
+            if (slot == 0) currentTier = data.getRangeTier();
+            else if (slot == 2) currentTier = data.getRechargeTier();
+            else if (slot == 4) currentTier = data.getDamageTier();
+            else if (slot == 6) currentTier = data.getBuffTier();
+            else if (slot == 8) currentTier = data.getTargetsTier();
+            else return;
+
+            int cost = config.getUpgradeCost(currentTier + 1);
+
+            // Calculate total condensed obsidian in inventory
+            int totalObsidian = 0;
+            for (org.bukkit.inventory.ItemStack item : player.getInventory().getContents()) {
+                if (CondensedObsidianItem.isCondensedObsidian(item)) {
+                    totalObsidian += item.getAmount();
+                }
+            }
+
+            if (totalObsidian < cost) {
+                player.sendMessage(net.kyori.adventure.text.Component.text("You need " + cost + " Condensed Obsidian to upgrade!").color(net.kyori.adventure.text.format.TextColor.fromHexString("#FF4444")));
+                player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                return;
+            }
+
+            // Deduct the cost
+            int remainingCost = cost;
+            for (int i = 0; i < player.getInventory().getSize(); i++) {
+                org.bukkit.inventory.ItemStack item = player.getInventory().getItem(i);
+                if (CondensedObsidianItem.isCondensedObsidian(item)) {
+                    int amt = item.getAmount();
+                    if (amt > remainingCost) {
+                        item.setAmount(amt - remainingCost);
+                        break;
+                    } else {
+                        player.getInventory().setItem(i, null);
+                        remainingCost -= amt;
+                        if (remainingCost <= 0) break;
+                    }
+                }
             }
 
             boolean upgraded = false;
@@ -206,9 +256,7 @@ public class SentryGuiListener implements Listener {
             }
 
             if (upgraded) {
-                // Save immediately to Block PDC
                 sentryManager.saveToPDC(coreLoc, data);
-                // Refresh the Upgrade GUI
                 SentryGui.openUpgradeMenu(player, coreLoc, data, config);
                 player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 2.0f);
             }
@@ -216,6 +264,11 @@ public class SentryGuiListener implements Listener {
 
         // ── Target List GUI ──
         else if (holder.getType() == SentryGuiHolder.GuiType.TARGET_LIST) {
+            if (slot == 53) {
+                SentryGui.openMain(player, coreLoc, data);
+                return;
+            }
+
             org.bukkit.inventory.ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem == null || clickedItem.getType() == org.bukkit.Material.AIR) return;
 

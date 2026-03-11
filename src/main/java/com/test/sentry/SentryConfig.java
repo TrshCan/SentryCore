@@ -47,4 +47,12 @@ public class SentryConfig {
         }
         return 0; // Default if not defined in config
     }
+
+    /**
+     * Gets the cost in Condensed Obsidian to reach the target tier level.
+     */
+    public int getUpgradeCost(int nextTier) {
+        if (nextTier <= 0) return 0;
+        return config.getInt("upgrade-costs." + nextTier, 1);
+    }
 }

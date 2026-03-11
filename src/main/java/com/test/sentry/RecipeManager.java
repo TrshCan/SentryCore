@@ -26,6 +26,16 @@ public final class RecipeManager {
         recipe.setIngredient('N', Material.NETHER_STAR);
 
         plugin.getServer().addRecipe(recipe);
+
+        // Condensed Obsidian Recipe
+        NamespacedKey coKey = new NamespacedKey(plugin, "condensed_obsidian");
+        ShapedRecipe coRecipe = new ShapedRecipe(coKey, CondensedObsidianItem.buildItem());
+
+        coRecipe.shape("OOO", "ODO", "OOO");
+        coRecipe.setIngredient('O', Material.OBSIDIAN);
+        coRecipe.setIngredient('D', Material.DIAMOND_BLOCK);
+
+        plugin.getServer().addRecipe(coRecipe);
         plugin.getLogger().info("Registered Sentry Core crafting recipe.");
     }
 
